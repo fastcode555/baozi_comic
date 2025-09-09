@@ -31,6 +31,33 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # GetX状态管理和路由
+  get: ^4.6.6
+  
+  # HTTP请求
+  http: ^1.2.0
+  
+  # HTML解析
+  html: ^0.15.4
+  
+  # 图片缓存
+  cached_network_image: ^3.3.1
+  
+  # 图片查看器
+  photo_view: ^0.14.0
+  
+  # 存储
+  shared_preferences: ^2.2.2
+  
+  # JSON序列化
+  json_annotation: ^4.8.1
+  
+  # URL启动器
+  url_launcher: ^6.2.4
+  
+  # 可见性检测
+  visibility_detector: ^0.4.0+2
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
@@ -46,6 +73,16 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
 
+  # JSON序列化代码生成
+  build_runner: ^2.4.8
+  json_serializable: ^6.7.1
+
+  # 应用图标生成
+  flutter_launcher_icons: ^0.14.4
+  
+  # 启动页生成
+  flutter_native_splash: ^2.4.6
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -58,9 +95,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -87,3 +123,44 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# 应用图标配置
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "ic_launcher.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  web:
+    generate: true
+    image_path: "ic_launcher.png"
+    background_color: "#hexcode"
+    theme_color: "#hexcode"
+  windows:
+    generate: true
+    image_path: "ic_launcher.png"
+    icon_size: 48 # min:48, max:256, default: 48
+  macos:
+    generate: true
+    image_path: "ic_launcher.png"
+
+# 启动页配置
+flutter_native_splash:
+  # 启动页图标
+  image: assets/app_icon_512.png
+  # 背景颜色（金黄色）
+  color: "FFD700"
+  # 图标大小（默认：128dp）
+  image_dark: assets/app_icon_512.png
+  # 暗色模式背景（深黄色）
+  color_dark: "B8860B"
+  # Android配置
+  android_12:
+    # Android 12+ 启动页图标
+    image: assets/app_icon_512.png
+    icon_background_color: "FFD700"
+    image_dark: assets/app_icon_512.png
+    icon_background_color_dark: "B8860B"
+  # 支持的平台
+  android: true
+  ios: true
+  web: true
