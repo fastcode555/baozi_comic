@@ -78,3 +78,33 @@ jobs:
         name: baozi_comic_debug_${{ steps.build_info.outputs.TIMESTAMP }}
         path: build/app/outputs/flutter-apk/baozi_comic_v${{ steps.build_info.outputs.VERSION }}_debug_${{ steps.build_info.outputs.TIMESTAMP }}.apk
         retention-days: 30
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.build_info.outputs.VERSION }}-${{ steps.build_info.outputs.TIMESTAMP }}
+        name: 包子漫画 v${{ steps.build_info.outputs.VERSION }}-${{ steps.build_info.outputs.TIMESTAMP }}
+        body: |
+          ## 包子漫画 v${{ steps.build_info.outputs.VERSION }}
+          
+          ### 📱 下载链接
+          请从下方的Assets中下载对应的APK文件：
+          - 构建类型: ${{ github.event.inputs.build_type }}
+          - 文件名格式: baozi_comic_v${{ steps.build_info.outputs.VERSION }}_{类型}_${{ steps.build_info.outputs.TIMESTAMP }}.apk
+          
+          ### 🔧 构建信息
+          - Flutter版本: 3.35.1
+          - 构建类型: ${{ github.event.inputs.build_type }}
+          - 构建时间: ${{ steps.build_info.outputs.TIMESTAMP }}
+          - 提交SHA: ${{ github.sha }}
+          - 触发方式: 手动构建 (Quick Build)
+          
+          ### 📋 说明
+          此版本通过GitHub Actions手动触发构建生成，标记为预发布版本。
+        files: |
+          build/app/outputs/flutter-apk/baozi_comic_v${{ steps.build_info.outputs.VERSION }}_*_${{ steps.build_info.outputs.TIMESTAMP }}.apk
+        draft: false
+        prerelease: true
+        make_latest: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
