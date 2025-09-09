@@ -1,0 +1,113 @@
+name: Build Android APK and Release
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.35.1'
+        channel: 'stable'
+        cache: true
+        
+    - name: Get dependencies
+      run: flutter pub get
+      
+    - name: Run build_runner (if needed)
+      run: flutter pub run build_runner build --delete-conflicting-outputs
+      continue-on-error: true
+      
+    - name: Generate app icons
+      run: dart run flutter_launcher_icons:main
+      continue-on-error: true
+      
+    - name: Generate splash screens
+      run: dart run flutter_native_splash:create
+      continue-on-error: true
+      
+    - name: Get version from pubspec
+      id: version
+      run: |
+        VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
+        BUILD_NUMBER=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+        
+    - name: Get current timestamp
+      id: timestamp
+      run: |
+        TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
+        echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_OUTPUT
+        
+    - name: Build Debug APK
+      run: flutter build apk --debug
+      
+    - name: Build Release APK
+      run: flutter build apk --release
+      
+    - name: Rename APK files
+      run: |
+        mv build/app/outputs/flutter-apk/app-debug.apk build/app/outputs/flutter-apk/baozi_comic_v${{ steps.version.outputs.VERSION }}_debug_${{ steps.timestamp.outputs.TIMESTAMP }}.apk
+        mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/baozi_comic_v${{ steps.version.outputs.VERSION }}_release_${{ steps.timestamp.outputs.TIMESTAMP }}.apk
+        
+    - name: Upload Debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: baozi_comic_debug_v${{ steps.version.outputs.VERSION }}_${{ steps.timestamp.outputs.TIMESTAMP }}
+        path: build/app/outputs/flutter-apk/baozi_comic_v${{ steps.version.outputs.VERSION }}_debug_${{ steps.timestamp.outputs.TIMESTAMP }}.apk
+        retention-days: 30
+        
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: baozi_comic_release_v${{ steps.version.outputs.VERSION }}_${{ steps.timestamp.outputs.TIMESTAMP }}
+        path: build/app/outputs/flutter-apk/baozi_comic_v${{ steps.version.outputs.VERSION }}_release_${{ steps.timestamp.outputs.TIMESTAMP }}.apk
+        retention-days: 90
+        
+    # Create GitHub Release for tags
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          build/app/outputs/flutter-apk/baozi_comic_v${{ steps.version.outputs.VERSION }}_debug_${{ steps.timestamp.outputs.TIMESTAMP }}.apk
+          build/app/outputs/flutter-apk/baozi_comic_v${{ steps.version.outputs.VERSION }}_release_${{ steps.timestamp.outputs.TIMESTAMP }}.apk
+        body: |
+          ## 包子漫画 v${{ steps.version.outputs.VERSION }}
+          
+          ### 📱 下载链接
+          - **Release版本** (推荐): baozi_comic_v${{ steps.version.outputs.VERSION }}_release_${{ steps.timestamp.outputs.TIMESTAMP }}.apk
+          - **Debug版本** (调试用): baozi_comic_v${{ steps.version.outputs.VERSION }}_debug_${{ steps.timestamp.outputs.TIMESTAMP }}.apk
+          
+          ### 🔧 构建信息
+          - Flutter版本: 3.35.1
+          - 构建时间: ${{ steps.timestamp.outputs.TIMESTAMP }}
+          - 提交SHA: ${{ github.sha }}
+          
+          ### 📋 更新内容
+          请查看此版本的提交记录了解详细更新内容。
+        tag_name: ${{ github.ref_name }}
+        name: 包子漫画 ${{ github.ref_name }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

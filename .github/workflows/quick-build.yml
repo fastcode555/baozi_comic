@@ -1,0 +1,80 @@
+name: Quick Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
+          - both
+
+jobs:
+  quick-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.35.1'
+        channel: 'stable'
+        cache: true
+        
+    - name: Get dependencies
+      run: flutter pub get
+      
+    - name: Generate resources
+      run: |
+        dart run flutter_launcher_icons:main || true
+        dart run flutter_native_splash:create || true
+        flutter pub run build_runner build --delete-conflicting-outputs || true
+        
+    - name: Get build info
+      id: build_info
+      run: |
+        VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
+        TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_OUTPUT
+        
+    - name: Build Release APK
+      if: ${{ github.event.inputs.build_type == 'release' || github.event.inputs.build_type == 'both' }}
+      run: |
+        flutter build apk --release
+        mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/baozi_comic_v${{ steps.build_info.outputs.VERSION }}_release_${{ steps.build_info.outputs.TIMESTAMP }}.apk
+        
+    - name: Build Debug APK
+      if: ${{ github.event.inputs.build_type == 'debug' || github.event.inputs.build_type == 'both' }}
+      run: |
+        flutter build apk --debug
+        mv build/app/outputs/flutter-apk/app-debug.apk build/app/outputs/flutter-apk/baozi_comic_v${{ steps.build_info.outputs.VERSION }}_debug_${{ steps.build_info.outputs.TIMESTAMP }}.apk
+        
+    - name: Upload Release APK
+      if: ${{ github.event.inputs.build_type == 'release' || github.event.inputs.build_type == 'both' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: baozi_comic_release_${{ steps.build_info.outputs.TIMESTAMP }}
+        path: build/app/outputs/flutter-apk/baozi_comic_v${{ steps.build_info.outputs.VERSION }}_release_${{ steps.build_info.outputs.TIMESTAMP }}.apk
+        retention-days: 30
+        
+    - name: Upload Debug APK
+      if: ${{ github.event.inputs.build_type == 'debug' || github.event.inputs.build_type == 'both' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: baozi_comic_debug_${{ steps.build_info.outputs.TIMESTAMP }}
+        path: build/app/outputs/flutter-apk/baozi_comic_v${{ steps.build_info.outputs.VERSION }}_debug_${{ steps.build_info.outputs.TIMESTAMP }}.apk
+        retention-days: 30
