@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 
 class HttpService {
   static const String baseUrl = 'https://www.baozimh.com';
@@ -14,9 +15,25 @@ class HttpService {
     'Upgrade-Insecure-Requests': '1',
   };
 
+  /// 创建HTTP客户端，针对不同平台进行优化
+  static http.Client _createClient() {
+    if (kIsWeb) {
+      return http.Client();
+    }
+    
+    // 为桌面平台创建自定义客户端
+    if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
+      return http.Client();
+    }
+    
+    return http.Client();
+  }
+
   static Future<String> get(String url) async {
+    http.Client? client;
     try {
-      final response = await http.get(
+      client = _createClient();
+      final response = await client.get(
         Uri.parse(url),
         headers: headers,
       ).timeout(timeout);
@@ -26,14 +43,26 @@ class HttpService {
       } else {
         throw HttpException('HTTP ${response.statusCode}: ${response.reasonPhrase}');
       }
+    } on SocketException catch (e) {
+      // 处理网络连接问题
+      if (e.osError?.errorCode == 1 && Platform.isMacOS) {
+        throw Exception('网络连接被拒绝，请检查macOS的网络权限设置。错误详情: $e');
+      }
+      throw Exception('网络连接失败: $e');
+    } on HttpException catch (e) {
+      throw Exception('HTTP请求失败: $e');
     } catch (e) {
-      throw Exception('Network request failed: $e');
+      throw Exception('网络请求失败: $e');
+    } finally {
+      client?.close();
     }
   }
 
   static Future<String> post(String url, {Map<String, dynamic>? body}) async {
+    http.Client? client;
     try {
-      final response = await http.post(
+      client = _createClient();
+      final response = await client.post(
         Uri.parse(url),
         headers: {
           ...headers,
@@ -47,8 +76,18 @@ class HttpService {
       } else {
         throw HttpException('HTTP ${response.statusCode}: ${response.reasonPhrase}');
       }
+    } on SocketException catch (e) {
+      // 处理网络连接问题
+      if (e.osError?.errorCode == 1 && Platform.isMacOS) {
+        throw Exception('网络连接被拒绝，请检查macOS的网络权限设置。错误详情: $e');
+      }
+      throw Exception('网络连接失败: $e');
+    } on HttpException catch (e) {
+      throw Exception('HTTP请求失败: $e');
     } catch (e) {
-      throw Exception('Network request failed: $e');
+      throw Exception('网络请求失败: $e');
+    } finally {
+      client?.close();
     }
   }
 
