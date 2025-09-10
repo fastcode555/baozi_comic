@@ -2,10 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:photo_view/photo_view.dart';
-import 'package:visibility_detector/visibility_detector.dart';
 
 import '../controllers/controllers.dart';
-import '../models/models.dart';
 import '../widgets/error_widget.dart';
 import '../widgets/loading_widget.dart';
 
@@ -145,145 +143,32 @@ class ReaderPage extends GetView<ReaderController> {
 
   Widget _buildVerticalViewer() {
     return Obx(() {
-      final images = controller.currentChapter?.images;
-      if (images == null || images.isEmpty) {
-        // 回退到原有的URL列表显示
-        return _buildVerticalViewerLegacy();
+      // 直接使用图片URL数组，这样能正确显示自动加载的图片
+      final imageUrls = controller.imageUrls;
+      if (imageUrls.isEmpty) {
+        return const Center(child: Text('暂无图片'));
       }
 
       return GestureDetector(
         onLongPress: controller.showUITemporarily,
         child: ListView.builder(
           controller: controller.scrollController,
-          itemCount: images.length + (controller.isLoadingNextChapter ? 1 : 0), // 只在加载时+1
+          itemCount: imageUrls.length + (controller.isLoadingNextChapter ? 1 : 0), // 只在加载时+1
           itemBuilder: (context, index) {
             // 最后一个item显示加载状态
-            if (index == images.length && controller.isLoadingNextChapter) {
+            if (index == imageUrls.length && controller.isLoadingNextChapter) {
               return _buildLoadingIndicator();
             }
             
-            final image = images[index];
-            return Column(
-              children: [
-                // 如果是新章节的第一张图，显示章节分界线
-                if (_isNewChapterStart(image, index)) 
-                  _buildChapterDivider(image, index),
-                _buildResponsiveImageWithVisibility(image, index),
-              ],
-            );
+            // 直接使用URL构建图片
+            return _buildSimpleImage(imageUrls[index], index);
           },
         ),
       );
     });
   }
 
-  /// 原有的垂直阅读器（用于向后兼容）
-  Widget _buildVerticalViewerLegacy() {
-    return GestureDetector(
-      onLongPress: controller.showUITemporarily,
-      child: ListView.builder(
-        controller: controller.scrollController,
-        itemCount: controller.imageUrls.length,
-        itemBuilder: (context, index) {
-          return _buildSimpleImage(controller.imageUrls[index], index);
-        },
-      ),
-    );
-  }
 
-  /// 带可见性检测的响应式图片显示
-  Widget _buildResponsiveImageWithVisibility(ComicImage image, int index) {
-    return VisibilityDetector(
-      key: Key('image_$index'),
-      onVisibilityChanged: (VisibilityInfo info) {
-        // 当图片有50%以上可见时，更新当前显示章节
-        if (info.visibleFraction > 0.5) {
-          _updateDisplayChapterByImageIndex(index);
-        }
-      },
-      child: _buildResponsiveImage(image),
-    );
-  }
-  
-  /// 根据图片索引更新显示章节
-  void _updateDisplayChapterByImageIndex(int imageIndex) {
-    final chapter = controller.getChapterByImageIndex(imageIndex);
-    if (chapter != null && chapter != controller.currentDisplayChapter) {
-      controller.updateDisplayChapter(chapter);
-    }
-  }
-
-  /// 响应式图片显示（垂直阅读优化）
-  Widget _buildResponsiveImage(ComicImage image) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final screenWidth = constraints.maxWidth;
-
-        // 防止除零和无效值
-        final safeWidth = image.width > 0 ? image.width : 1280;
-        final safeHeight = image.height > 0 ? image.height : 1200;
-        final imageHeight = (screenWidth * safeHeight) / safeWidth;
-
-        // 确保高度是有效的数值
-        final finalHeight = imageHeight.isFinite && imageHeight > 0 ? imageHeight : 200.0;
-
-        return Container(
-          width: screenWidth,
-          height: finalHeight,
-          color: Colors.black,
-          child: GestureDetector(
-            onTap: () => _showImageDetail(image, context),
-            child: CachedNetworkImage(
-              imageUrl: image.url,
-              width: screenWidth,
-              height: finalHeight,
-              fit: BoxFit.contain,
-              placeholder: (context, url) => Container(
-                width: screenWidth,
-                height: finalHeight,
-                color: Colors.grey[900],
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const CircularProgressIndicator(color: Colors.white),
-                      const SizedBox(height: 8),
-                      Text('加载中... ${image.index + 1}', style: const TextStyle(color: Colors.white)),
-                    ],
-                  ),
-                ),
-              ),
-              errorWidget: (context, url, error) => Container(
-                width: screenWidth,
-                height: finalHeight,
-                color: Colors.grey[900],
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error, color: Colors.red, size: 48),
-                      const SizedBox(height: 8),
-                      Text('图片加载失败 ${image.index + 1}', style: const TextStyle(color: Colors.white)),
-                      const SizedBox(height: 8),
-                      Text('${safeWidth}×${safeHeight}', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: () {
-                          // 重新加载图片
-                          // 这里可以调用重新加载的逻辑
-                        },
-                        child: const Text('重试'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   /// 简单图片显示（用于ListView，不使用PhotoView）
   Widget _buildSimpleImage(String imageUrl, int index) {
@@ -338,19 +223,6 @@ class ReaderPage extends GetView<ReaderController> {
     );
   }
 
-  /// 显示图片详情（放大查看）
-  void _showImageDetail(ComicImage image, BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => _ImageDetailPage(
-          imageUrl: image.url,
-          imageIndex: image.index,
-          totalImages: controller.currentChapter?.images?.length ?? 0,
-        ),
-      ),
-    );
-  }
 
   /// 通过URL显示图片详情
   void _showImageDetailByUrl(String imageUrl, int index, BuildContext context) {
@@ -363,48 +235,6 @@ class ReaderPage extends GetView<ReaderController> {
     );
   }
   
-  /// 判断是否是新章节的开始
-  bool _isNewChapterStart(ComicImage image, int index) {
-    if (index == 0) return false; // 第一张图片不显示分界线
-    
-    // 检查是否有特殊的章节标记（负数index）
-    return image.index < -1000;
-  }
-  
-  /// 构建章节分界线
-  Widget _buildChapterDivider(ComicImage image, int index) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-      color: Colors.grey[900],
-      child: Column(
-        children: [
-          const Divider(color: Colors.grey, thickness: 1),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.auto_stories, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  '下一章节开始',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Divider(color: Colors.grey, thickness: 1),
-        ],
-      ),
-    );
-  }
   
   /// 构建加载指示器
   Widget _buildLoadingIndicator() {
