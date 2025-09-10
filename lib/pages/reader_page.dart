@@ -173,6 +173,7 @@ class ReaderPage extends GetView<ReaderController> {
   /// 简单图片显示（用于ListView，不使用PhotoView）
   Widget _buildSimpleImage(String imageUrl, int index) {
     return Builder(
+      key: ValueKey(imageUrl),
       builder: (context) => GestureDetector(
         onTap: () => _showImageDetailByUrl(imageUrl, index, context),
         child: Container(
@@ -180,6 +181,7 @@ class ReaderPage extends GetView<ReaderController> {
           constraints: const BoxConstraints(minHeight: 200, maxHeight: 800),
           color: Colors.black,
           child: CachedNetworkImage(
+            key: ValueKey('${imageUrl}_cached'),
             imageUrl: imageUrl,
             fit: BoxFit.contain,
             placeholder: (context, url) => Container(
@@ -264,6 +266,7 @@ class ReaderPage extends GetView<ReaderController> {
 
   Widget _buildImagePage(String imageUrl) {
     return PhotoView(
+      key: ValueKey(imageUrl),
       imageProvider: CachedNetworkImageProvider(imageUrl),
       minScale: PhotoViewComputedScale.contained,
       maxScale: PhotoViewComputedScale.covered * 3.0,
@@ -363,6 +366,7 @@ class _ImageDetailPage extends StatelessWidget {
       ),
       body: Center(
         child: PhotoView(
+          key: ValueKey(imageUrl),
           imageProvider: CachedNetworkImageProvider(imageUrl),
           minScale: PhotoViewComputedScale.contained,
           maxScale: PhotoViewComputedScale.covered * 3.0,

@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import '../models/models.dart';
 import '../services/services.dart';
 
@@ -22,18 +24,18 @@ class ReaderController extends GetxController {
   // 页面控制器
   final pageController = PageController();
   final scrollController = ScrollController();
-  
+
   // UI自动隐藏控制
   Timer? _hideUITimer;
   bool _isScrolling = false;
-  
+
   // 自动加载下一章控制
   bool _isLoadingNextChapter = false;
-  
+
   // 章节映射和动态标题
   final Map<int, Chapter> _imageIndexToChapter = {}; // 图片索引到章节的映射
   final _currentDisplayChapter = Rxn<Chapter>(); // 当前显示的章节
-  
+
   // 历史记录更新控制
   String? _lastUpdatedChapterId;
 
@@ -47,28 +49,44 @@ class ReaderController extends GetxController {
 
   // Getters
   Comic? get comic => _comic.value;
+
   Chapter? get currentChapter => _currentChapter.value;
+
   List<Chapter> get chapters => _chapters;
+
   List<String> get imageUrls => _imageUrls;
+
   int get currentPageIndex => _currentPageIndex.value;
+
   bool get isLoading => _isLoading.value;
+
   bool get isLoadingImages => _isLoadingImages.value;
+
   String get error => _error.value;
+
   bool get showAppBar => _showAppBar.value;
+
   bool get isFullscreen => _isFullscreen.value;
+
   String get readingMode => _readingMode.value;
+
   bool get isLoadingNextChapter => _isLoadingNextChapter;
+
   Chapter? get currentDisplayChapter => _currentDisplayChapter.value;
+
   bool get hasImages => _imageUrls.isNotEmpty;
+
   bool get isFirstPage => _currentPageIndex.value == 0;
+
   bool get isLastPage => _currentPageIndex.value == _imageUrls.length - 1;
+
   int get totalPages => _imageUrls.length;
 
   @override
   void onInit() {
     super.onInit();
     _storageService = Get.find<StorageService>();
-    
+
     // 获取路由参数
     comicId = Get.parameters['comicId'] ?? '';
     chapterId = Get.parameters['chapterId'] ?? '';
@@ -90,7 +108,7 @@ class ReaderController extends GetxController {
 
     // 加载阅读偏好
     _loadReadingPreferences();
-    
+
     // 设置滚动监听器
     _setupScrollListener();
   }
@@ -109,7 +127,6 @@ class ReaderController extends GetxController {
     _currentChapterNumber = int.tryParse(chapterId) ?? 0;
   }
 
-
   /// 加载章节图片
   Future<void> loadChapterImages() async {
     _isLoadingImages.value = true;
@@ -118,16 +135,16 @@ class ReaderController extends GetxController {
     try {
       // 使用新的getChapterDetail方法获取完整的章节信息
       final result = await ComicService.getChapterDetail(comicId, chapterId);
-      
+
       if (result.success && result.data != null) {
         final chapter = result.data!;
         _currentChapter.value = chapter;
         _currentDisplayChapter.value = chapter; // 初始化当前显示的章节
-        
+
         // 设置图片URL并建立映射
         if (chapter.imageUrls != null && chapter.imageUrls!.isNotEmpty) {
           _imageUrls.value = chapter.imageUrls!;
-          
+
           // 建立图片索引到章节的映射
           _imageIndexToChapter.clear();
           for (int i = 0; i < chapter.imageUrls!.length; i++) {
@@ -136,7 +153,7 @@ class ReaderController extends GetxController {
         } else {
           _error.value = '该章节暂无图片';
         }
-        
+
         // 保存阅读历史
         await _saveReadingHistory();
       } else {
@@ -166,7 +183,7 @@ class ReaderController extends GetxController {
 
       // 计算当前章节内的页面索引
       int chapterPageIndex = _currentPageIndex.value;
-      
+
       // 如果是垂直阅读模式且有多章节，需要计算在当前章节内的页面索引
       if (_readingMode.value == 'vertical' && _imageIndexToChapter.isNotEmpty) {
         // 找到当前章节在图片列表中的起始位置
@@ -176,7 +193,7 @@ class ReaderController extends GetxController {
             break;
           }
         }
-        
+
         // 确保页面索引不为负数
         chapterPageIndex = chapterPageIndex.clamp(0, (chapter.images?.length ?? chapter.imageUrls?.length ?? 1) - 1);
       }
@@ -211,7 +228,7 @@ class ReaderController extends GetxController {
   /// 页面变化处理
   void onPageChanged(int index) {
     _currentPageIndex.value = index;
-    
+
     // 定期保存阅读进度
     if (index % 5 == 0) {
       _saveReadingHistory();
@@ -222,10 +239,7 @@ class ReaderController extends GetxController {
   void previousPage() {
     if (!isFirstPage) {
       if (_readingMode.value == 'horizontal') {
-        pageController.previousPage(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
+        pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       } else {
         _scrollToPreviousImage();
       }
@@ -236,10 +250,7 @@ class ReaderController extends GetxController {
   void nextPage() {
     if (!isLastPage) {
       if (_readingMode.value == 'horizontal') {
-        pageController.nextPage(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
+        pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       } else {
         _scrollToNextImage();
       }
@@ -250,11 +261,7 @@ class ReaderController extends GetxController {
   void goToPage(int index) {
     if (index >= 0 && index < _imageUrls.length) {
       if (_readingMode.value == 'horizontal') {
-        pageController.animateToPage(
-          index,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
+        pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       } else {
         // 垂直模式下的跳转逻辑
         _scrollToImage(index);
@@ -283,14 +290,10 @@ class ReaderController extends GetxController {
     _currentChapterNumber = chapterNumber;
     chapterId = chapterNumber.toString();
     _currentPageIndex.value = 0;
-    
+
     // 重置页面控制器
     if (pageController.hasClients) {
-      pageController.animateToPage(
-        0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      pageController.animateToPage(0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
     }
 
     await loadChapterImages();
@@ -301,17 +304,13 @@ class ReaderController extends GetxController {
     _currentChapter.value = chapter;
     chapterId = chapter.id;
     _currentPageIndex.value = 0;
-    
+
     // 更新章节数字
     _currentChapterNumber = int.tryParse(chapterId) ?? 0;
-    
+
     // 重置页面控制器
     if (pageController.hasClients) {
-      pageController.animateToPage(
-        0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      pageController.animateToPage(0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
     }
 
     await loadChapterImages();
@@ -321,7 +320,7 @@ class ReaderController extends GetxController {
   Future<void> toggleReadingMode() async {
     final newMode = _readingMode.value == 'horizontal' ? 'vertical' : 'horizontal';
     _readingMode.value = newMode;
-    
+
     try {
       await _storageService.setSetting('reading_mode', newMode);
     } catch (e) {
@@ -353,38 +352,38 @@ class ReaderController extends GetxController {
       _hideUI();
     }
     _resetScrollingState();
-    
+
     // 更新当前显示的章节
     _updateCurrentDisplayChapter();
-    
+
     // 检查是否需要预加载下一章
     _checkAndPreloadNextChapter();
   }
-  
+
   /// 根据滚动位置更新当前显示的章节
   void _updateCurrentDisplayChapter() {
     // 只在垂直阅读模式下更新
     if (_readingMode.value != 'vertical') return;
-    
+
     try {
       // 计算当前可见区域的中心位置对应的图片索引
       final position = scrollController.position;
       final viewportCenter = position.pixels + (Get.height / 2);
-      
+
       // 使用更精确的方法计算当前图片索引
       int currentImageIndex = _findCurrentImageIndex(viewportCenter);
-      
+
       // 调试信息
       print('滚动检测: 图片索引=$currentImageIndex, 总图片数=${_imageUrls.length}, 章节映射数量=${_imageIndexToChapter.length}');
-      
+
       // 根据图片索引找到对应的章节
       final chapter = _imageIndexToChapter[currentImageIndex];
       print('找到章节: ${chapter?.title ?? "null"}');
-      
+
       if (chapter != null && chapter != _currentDisplayChapter.value) {
         _currentDisplayChapter.value = chapter;
         print('切换显示章节: ${chapter.title}');
-        
+
         // 当章节发生变化时，更新历史记录
         _updateHistoryOnChapterChange(chapter, currentImageIndex);
       }
@@ -392,7 +391,7 @@ class ReaderController extends GetxController {
       print('更新显示章节失败: $e');
     }
   }
-  
+
   /// 查找当前可见的图片索引（更精确的方法）
   int _findCurrentImageIndex(double viewportCenter) {
     // 如果图片索引到章节的映射为空，使用简单估算
@@ -401,97 +400,100 @@ class ReaderController extends GetxController {
       final averageImageHeight = totalHeight / _imageUrls.length;
       return (viewportCenter / averageImageHeight).round().clamp(0, _imageUrls.length - 1);
     }
-    
+
     // 使用章节边界来更精确地定位
     int bestIndex = 0;
     double minDistance = double.infinity;
-    
+
     // 遍历所有图片索引，找到最接近视口中心的图片
     for (int i = 0; i < _imageUrls.length; i++) {
       // 估算图片i的位置
       final imagePosition = _estimateImagePosition(i);
       final distance = (imagePosition - viewportCenter).abs();
-      
+
       if (distance < minDistance) {
         minDistance = distance;
         bestIndex = i;
       }
     }
-    
+
     return bestIndex.clamp(0, _imageUrls.length - 1);
   }
-  
+
   /// 估算图片在滚动视图中的位置
   double _estimateImagePosition(int imageIndex) {
     if (imageIndex >= _imageUrls.length) return 0;
-    
+
     // 使用平均高度估算位置
     final totalHeight = scrollController.position.maxScrollExtent + Get.height;
     final averageImageHeight = totalHeight / _imageUrls.length;
-    
+
     return imageIndex * averageImageHeight;
   }
-  
+
   /// 检查并预加载下一章
   void _checkAndPreloadNextChapter() {
     // 只在垂直阅读模式下进行预加载
     if (_readingMode.value != 'vertical' || _isLoadingNextChapter) {
       return;
     }
-    
+
     // 检查当前滚动位置是否接近底部
     final position = scrollController.position;
     final maxExtent = position.maxScrollExtent;
     final currentExtent = position.pixels;
-    
+
     // 计算剩余可滚动距离，如果小于屏幕高度的2倍，开始预加载
     final remainingDistance = maxExtent - currentExtent;
     final screenHeight = Get.height;
-    
-    print('滚动检查: 剩余距离=${remainingDistance.toStringAsFixed(0)}, 屏幕高度=${screenHeight.toStringAsFixed(0)}, 触发距离=${(screenHeight * 2.0).toStringAsFixed(0)}');
-    
+
+    print(
+      '滚动检查: 剩余距离=${remainingDistance.toStringAsFixed(0)}, 屏幕高度=${screenHeight.toStringAsFixed(0)}, 触发距离=${(screenHeight * 2.0).toStringAsFixed(0)}',
+    );
+
     if (remainingDistance < screenHeight * 2.0) {
       print('触发自动加载下一章');
       _autoLoadNextChapter();
     }
   }
-  
+
   /// 自动加载下一章并追加到当前列表
   Future<void> _autoLoadNextChapter() async {
     if (_isLoadingNextChapter) {
       print('正在加载下一章，跳过重复调用');
       return;
     }
-    
+
     _isLoadingNextChapter = true;
-    
+
     try {
       final nextChapterNumber = _currentChapterNumber + 1;
       print('开始预加载下一章: 第${nextChapterNumber}章');
-      
+
       // 获取下一章的详细信息
       final chapterResult = await ComicService.getChapterDetail(comicId, nextChapterNumber.toString());
       if (chapterResult.success && chapterResult.data != null) {
         final nextChapterData = chapterResult.data!;
-        
+
         // 将下一章的图片追加到当前列表
         if (nextChapterData.imageUrls != null && nextChapterData.imageUrls!.isNotEmpty) {
           // 记录当前图片数量
           final currentImageCount = _imageUrls.length;
-          
+
           // 追加图片到当前列表
+
           _imageUrls.addAll(nextChapterData.imageUrls!);
-          
+
           // 为新追加的图片建立章节映射
           for (int i = currentImageCount; i < _imageUrls.length; i++) {
             _imageIndexToChapter[i] = nextChapterData;
           }
-          
+
           // 强制更新UI
           _imageUrls.refresh();
-          
+          _currentChapterNumber = nextChapterNumber;
           print('成功预加载下一章，追加了 ${nextChapterData.imageUrls!.length} 张图片，总图片数: ${_imageUrls.length}');
-          print('章节映射更新: 从索引$currentImageCount到${_imageUrls.length-1}映射到章节${nextChapterData.title}');
+          print('章节映射更新: 从索引$currentImageCount到${_imageUrls.length - 1}映射到章节${nextChapterData.title}');
         }
       } else {
         // 如果下一章不存在，说明已经是最后一章了
@@ -534,12 +536,12 @@ class ReaderController extends GetxController {
       }
     });
   }
-  
+
   /// 根据图片索引获取对应的章节
   Chapter? getChapterByImageIndex(int imageIndex) {
     return _imageIndexToChapter[imageIndex];
   }
-  
+
   /// 更新当前显示的章节
   void updateDisplayChapter(Chapter chapter) {
     _currentDisplayChapter.value = chapter;
@@ -558,16 +560,9 @@ class ReaderController extends GetxController {
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              child: Text(
-                '章节列表',
-                style: Get.textTheme.titleLarge,
-              ),
+              child: Text('章节列表', style: Get.textTheme.titleLarge),
             ),
-            Expanded(
-              child: _chapters.isNotEmpty 
-                ? _buildChapterListFromData()
-                : _buildChapterListFromNumbers(),
-            ),
+            Expanded(child: _chapters.isNotEmpty ? _buildChapterListFromData() : _buildChapterListFromNumbers()),
           ],
         ),
       ),
@@ -581,7 +576,7 @@ class ReaderController extends GetxController {
       itemBuilder: (context, index) {
         final chapter = _chapters[index];
         final isCurrentChapter = chapter.id == chapterId;
-        
+
         return ListTile(
           title: Text(
             chapter.title,
@@ -604,17 +599,14 @@ class ReaderController extends GetxController {
     // 显示当前章节前后各10章
     final startChapter = (_currentChapterNumber - 10).clamp(1, _currentChapterNumber);
     final endChapter = _currentChapterNumber + 10;
-    final chapterNumbers = List.generate(
-      endChapter - startChapter + 1,
-      (index) => startChapter + index,
-    );
+    final chapterNumbers = List.generate(endChapter - startChapter + 1, (index) => startChapter + index);
 
     return ListView.builder(
       itemCount: chapterNumbers.length,
       itemBuilder: (context, index) {
         final chapterNumber = chapterNumbers[index];
         final isCurrentChapter = chapterNumber == _currentChapterNumber;
-        
+
         return ListTile(
           title: Text(
             '第${chapterNumber}章',
@@ -645,25 +637,16 @@ class ReaderController extends GetxController {
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              child: Text(
-                '阅读设置',
-                style: Get.textTheme.titleLarge,
-              ),
+              child: Text('阅读设置', style: Get.textTheme.titleLarge),
             ),
             ListTile(
               title: const Text('阅读模式'),
               subtitle: Text(_readingMode.value == 'horizontal' ? '水平翻页' : '垂直滚动'),
-              trailing: Switch(
-                value: _readingMode.value == 'vertical',
-                onChanged: (value) => toggleReadingMode(),
-              ),
+              trailing: Switch(value: _readingMode.value == 'vertical', onChanged: (value) => toggleReadingMode()),
             ),
             ListTile(
               title: const Text('全屏模式'),
-              trailing: Switch(
-                value: _isFullscreen.value,
-                onChanged: (value) => toggleFullscreen(),
-              ),
+              trailing: Switch(value: _isFullscreen.value, onChanged: (value) => toggleFullscreen()),
             ),
             ListTile(
               title: const Text('测试自动加载下一章'),
@@ -717,10 +700,10 @@ class ReaderController extends GetxController {
 
     try {
       print('开始更新历史记录: 章节=${chapter.title}, 图片索引=$currentImageIndex');
-      
+
       // 计算当前章节内的页面索引
       int chapterPageIndex = 0;
-      
+
       // 找到当前章节在图片列表中的起始位置
       for (int i = 0; i < _imageUrls.length; i++) {
         if (_imageIndexToChapter[i]?.id == chapter.id) {
@@ -729,10 +712,10 @@ class ReaderController extends GetxController {
           break;
         }
       }
-      
+
       // 确保页面索引不为负数
       chapterPageIndex = chapterPageIndex.clamp(0, (chapter.images?.length ?? chapter.imageUrls?.length ?? 1) - 1);
-      
+
       final history = ReadingHistory(
         comicId: _comic.value!.id,
         comicTitle: _comic.value!.title,
