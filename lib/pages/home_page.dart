@@ -22,14 +22,24 @@ class HomePage extends GetView<HomeController> {
       ),
       child: Scaffold(
         appBar: AppBar(
-          leading: SizedBox(),
-          title: const Text('包子漫画'),
+          backgroundColor: Colors.amber,
+          elevation: 0,
+          leading: const SizedBox(),
+          title: const Text(
+            '包子漫画',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
           centerTitle: true,
           actions: [
             IconButton(
-              icon: const Icon(Icons.search),
+              icon: const Icon(Icons.search, color: Colors.black),
               onPressed: controller.goToSearch,
             ),
+            const SizedBox(width: 16),
           ],
         ),
         body: Obx(() {
