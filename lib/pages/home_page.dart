@@ -179,7 +179,7 @@ class HomePage extends GetView<HomeController> {
               height: 80,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: controller.categories.take(8).length,
+                itemCount: controller.categories.length,
                 itemBuilder: (context, index) {
                   final category = controller.categories[index];
                   return GestureDetector(
