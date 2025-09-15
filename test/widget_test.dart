@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tailwind/flutter_tailwind.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:baozi_comic/main.dart';
 
