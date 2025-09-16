@@ -30,46 +30,54 @@ class BaoziComicApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(375, 812), // 设计稿的尺寸
-      minTextAdapt: true, // 自动适配文字大小
-      splitScreenMode: true, // 支持分屏模式
-      builder: (_,__){
-        return GetMaterialApp(
-          title: '包子漫画',
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            primarySwatch: Colors.amber,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFFFFD700), // 金黄色
-            ),
-            scaffoldBackgroundColor: Colors.grey[50],
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFFFFD700), // 金黄色AppBar
-              foregroundColor: Colors.black87,
-              elevation: 2,
-              shadowColor: Colors.black26,
-            ),
-            elevatedButtonTheme: ElevatedButtonThemeData(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFD700),
-                foregroundColor: Colors.black87,
-                elevation: 2,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isLandscape = constraints.maxWidth > constraints.maxHeight;
+        final Size designSize =
+            isLandscape ? const Size(812, 375) : const Size(375, 812);
+
+        return ScreenUtilInit(
+          designSize: designSize, // 根据窗口比例自适应设计尺寸
+          minTextAdapt: true, // 自动适配文字大小
+          splitScreenMode: true, // 支持分屏模式
+          builder: (_, __) {
+            return GetMaterialApp(
+              title: '包子漫画',
+              debugShowCheckedModeBanner: false,
+              theme: ThemeData(
+                primarySwatch: Colors.amber,
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: const Color(0xFFFFD700), // 金黄色
+                ),
+                scaffoldBackgroundColor: Colors.grey[50],
+                appBarTheme: const AppBarTheme(
+                  backgroundColor: Color(0xFFFFD700), // 金黄色AppBar
+                  foregroundColor: Colors.black87,
+                  elevation: 2,
+                  shadowColor: Colors.black26,
+                ),
+                elevatedButtonTheme: ElevatedButtonThemeData(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFD700),
+                    foregroundColor: Colors.black87,
+                    elevation: 2,
+                  ),
+                ),
+                floatingActionButtonTheme: const FloatingActionButtonThemeData(
+                  backgroundColor: Color(0xFFFFD700),
+                  foregroundColor: Colors.black87,
+                ),
+                progressIndicatorTheme: const ProgressIndicatorThemeData(
+                  color: Color(0xFFFFD700),
+                ),
+                useMaterial3: true,
               ),
-            ),
-            floatingActionButtonTheme: const FloatingActionButtonThemeData(
-              backgroundColor: Color(0xFFFFD700),
-              foregroundColor: Colors.black87,
-            ),
-            progressIndicatorTheme: const ProgressIndicatorThemeData(
-              color: Color(0xFFFFD700),
-            ),
-            useMaterial3: true,
-          ),
-          initialRoute: AppRoutes.initial,
-          getPages: AppPages.pages,
+              initialRoute: AppRoutes.initial,
+              getPages: AppPages.pages,
+            );
+          },
         );
-      }
+      },
     );
   }
 }
