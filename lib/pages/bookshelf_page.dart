@@ -1,11 +1,11 @@
+import 'package:baozi_comic/controllers/controllers.dart';
+import 'package:baozi_comic/models/models.dart';
+import 'package:baozi_comic/widgets/comic_card.dart';
+import 'package:baozi_comic/widgets/error_widget.dart';
+import 'package:baozi_comic/widgets/loading_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tailwind/flutter_tailwind.dart';
 import 'package:get/get.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../controllers/controllers.dart';
-import '../widgets/loading_widget.dart';
-import '../widgets/error_widget.dart';
-import '../models/models.dart';
-import '../widgets/comic_card.dart';
 
 class BookshelfPage extends GetView<BookshelfController> {
   const BookshelfPage({super.key});
@@ -14,14 +14,9 @@ class BookshelfPage extends GetView<BookshelfController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(onPressed: Get.back, icon: Icon(Icons.arrow_back_ios_new_rounded)),
-        title: const Text('我的书架'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: controller.showMoreActions,
-          ),
-        ],
+        leading: const Icon(Icons.arrow_back_ios_new_rounded).iconClick(onTap: Get.back),
+        title: text('我的书架').mk,
+        actions: [const Icon(Icons.more_vert).iconClick(onTap: controller.showMoreActions)],
         bottom: TabBar(
           controller: controller.tabController,
           tabs: const [
@@ -36,19 +31,10 @@ class BookshelfPage extends GetView<BookshelfController> {
         }
 
         if (controller.error.isNotEmpty) {
-          return CustomErrorWidget(
-            error: controller.error,
-            onRetry: controller.refreshData,
-          );
+          return CustomErrorWidget(error: controller.error, onRetry: controller.refreshData);
         }
 
-        return TabBarView(
-          controller: controller.tabController,
-          children: [
-            _buildFavoritesTab(),
-            _buildHistoryTab(),
-          ],
-        );
+        return TabBarView(controller: controller.tabController, children: [_buildFavoritesTab(), _buildHistoryTab()]);
       }),
     );
   }
@@ -56,58 +42,25 @@ class BookshelfPage extends GetView<BookshelfController> {
   Widget _buildFavoritesTab() {
     return Obx(() {
       if (!controller.hasFavorites) {
-        return const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.favorite_border,
-                size: 64,
-                color: Colors.grey,
-              ),
-              SizedBox(height: 16),
-              Text(
-                '暂无收藏',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                '快去收藏喜欢的漫画吧！',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
+        return Center(
+          child: column.center.children([
+            Icons.favorite_border.icon.s64.grey.mk,
+            h16,
+            text('暂无收藏').f16.grey.mk,
+            h8,
+            text('快去收藏喜欢的漫画吧！').f14.grey.mk,
+          ]),
         );
       }
 
       return RefreshIndicator(
         onRefresh: controller.loadFavorites,
-        child: GridView.builder(
-          padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            childAspectRatio: 0.7,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          itemCount: controller.favorites.length,
-          itemBuilder: (context, index) {
-            final comic = controller.favorites[index];
-            return GestureDetector(
-              onLongPress: () => _showComicActions(comic, isFavorite: true),
-              child: ComicCard(
-                comic: comic,
-                onTap: () => controller.goToComicDetail(comic),
-              ),
-            );
-          },
-        ),
+        child: gridview.p16.childWidth200.spacing12.ratio70.dataBuilder(controller.favorites, (_, __, comic) {
+          return GestureDetector(
+            onLongPress: () => _showComicActions(comic, isFavorite: true),
+            child: ComicCard(comic: comic, onTap: () => controller.goToComicDetail(comic)),
+          );
+        }),
       );
     });
   }
@@ -115,49 +68,22 @@ class BookshelfPage extends GetView<BookshelfController> {
   Widget _buildHistoryTab() {
     return Obx(() {
       if (!controller.hasHistory) {
-        return const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.history,
-                size: 64,
-                color: Colors.grey,
-              ),
-              SizedBox(height: 16),
-              Text(
-                '暂无阅读历史',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                '开始阅读漫画吧！',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
+        return Center(
+          child: column.center.children([
+            Icons.history.icon.s64.grey.mk,
+            h16,
+            text('暂无阅读历史').f16.grey.mk,
+            h8,
+            text('开始阅读漫画吧！').f14.grey.mk,
+          ]),
         );
       }
 
       return RefreshIndicator(
         onRefresh: controller.loadReadingHistory,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: controller.readingHistory.length,
-          itemBuilder: (context, index) {
-            final history = controller.readingHistory[index];
-            return GestureDetector(
-              onLongPress: () => _showHistoryActions(history),
-              child: _buildHistoryCard(history),
-            );
-          },
-        ),
+        child: listview.p16.dataBuilder(controller.readingHistory, (context, index, history) {
+          return GestureDetector(onLongPress: () => _showHistoryActions(history), child: _buildHistoryCard(history));
+        }),
       );
     });
   }
@@ -165,165 +91,79 @@ class BookshelfPage extends GetView<BookshelfController> {
   Widget _buildHistoryCard(ReadingHistory history) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            // 封面
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: CachedNetworkImage(
-                imageUrl: history.comicCoverUrl ?? '',
-                width: 60,
-                height: 80,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.image),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.broken_image),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            
-            // 信息
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    history.comicTitle,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  if (history.lastChapterTitle != null)
-                    Text(
-                      '阅读至: ${history.lastChapterTitle}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatDateTime(history.lastReadTime),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            // 继续阅读按钮
-            TextButton(
-              onPressed: () => controller.continueReading(history),
-              child: const Text('继续'),
-            ),
-          ],
-        ),
+      child: padding.p12.child(
+        row.children([
+          image(history.comicCoverUrl).rounded6.w60.h80.cover.mk,
+          w12,
+          column.expanded.crossStart.spacing4.children([
+            text(history.comicTitle).ellipsis.maxLine2.f16.bold.mk,
+            if (history.lastChapterTitle != null)
+              text('阅读至: ${history.lastChapterTitle}').ellipsis.maxLine1.f14.grey.mk,
+            text(_formatDateTime(history.lastReadTime)).f12.grey.mk,
+          ]),
+          textButton('继续').click(onTap: () => controller.continueReading(history)),
+        ]),
       ),
     );
   }
 
   void _showComicActions(Comic comic, {bool isFavorite = false}) {
     Get.bottomSheet(
-      Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                comic.title,
-                style: Get.textTheme.titleMedium,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+      container.white.roundedT16.child(
+        column.min.children([
+          container.p16.child(text(comic.title).ellipsis.maxLine2.mk),
+          ListTile(
+            leading: const Icon(Icons.info),
+            title: text('查看详情').mk,
+            onTap: () {
+              Get.back();
+              controller.goToComicDetail(comic);
+            },
+          ),
+          if (isFavorite)
             ListTile(
-              leading: const Icon(Icons.info),
-              title: const Text('查看详情'),
+              leading: const Icon(Icons.favorite_border),
+              title: text('取消收藏').mk,
               onTap: () {
                 Get.back();
-                controller.goToComicDetail(comic);
+                controller.removeFromFavorites(comic);
               },
             ),
-            if (isFavorite)
-              ListTile(
-                leading: const Icon(Icons.favorite_border),
-                title: const Text('取消收藏'),
-                onTap: () {
-                  Get.back();
-                  controller.removeFromFavorites(comic);
-                },
-              ),
-          ],
-        ),
+        ]),
       ),
     );
   }
 
   void _showHistoryActions(ReadingHistory history) {
     Get.bottomSheet(
-      Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                history.comicTitle,
-                style: Get.textTheme.titleMedium,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.play_arrow),
-              title: const Text('继续阅读'),
-              onTap: () {
-                Get.back();
-                controller.continueReading(history);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.info),
-              title: const Text('查看详情'),
-              onTap: () {
-                Get.back();
-                Get.toNamed('/comic/${history.comicId}');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete),
-              title: const Text('删除记录'),
-              onTap: () {
-                Get.back();
-                controller.removeFromHistory(history);
-              },
-            ),
-          ],
-        ),
+      container.white.roundedT16.child(
+        column.min.children([
+          container.p16.child(text(history.comicTitle).ellipsis.maxLine2.mk),
+          ListTile(
+            leading: const Icon(Icons.play_arrow),
+            title: text('继续阅读').mk,
+            onTap: () {
+              Get.back();
+              controller.continueReading(history);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.info),
+            title: text('查看详情').mk,
+            onTap: () {
+              Get.back();
+              Get.toNamed('/comic/${history.comicId}');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete),
+            title: text('删除记录').mk,
+            onTap: () {
+              Get.back();
+              controller.removeFromHistory(history);
+            },
+          ),
+        ]),
       ),
     );
   }

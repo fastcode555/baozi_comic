@@ -1,11 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:baozi_comic/controllers/controllers.dart';
+import 'package:baozi_comic/widgets/error_widget.dart';
+import 'package:baozi_comic/widgets/loading_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tailwind/flutter_tailwind.dart';
 import 'package:get/get.dart';
 import 'package:photo_view/photo_view.dart';
-
-import '../controllers/controllers.dart';
-import '../widgets/error_widget.dart';
-import '../widgets/loading_widget.dart';
 
 class ReaderPage extends GetView<ReaderController> {
   const ReaderPage({super.key});
@@ -22,7 +21,7 @@ class ReaderPage extends GetView<ReaderController> {
               : AppBar(
                   backgroundColor: Colors.transparent,
                   elevation: 0,
-                  leading: IconButton(onPressed: Get.back, icon: Icon(Icons.arrow_back_ios_outlined)),
+                  leading: const Icon(Icons.arrow_back_ios_outlined).iconClick(onTap: Get.back),
                 ),
         ),
       ),
@@ -36,10 +35,10 @@ class ReaderPage extends GetView<ReaderController> {
         }
 
         if (!controller.hasImages) {
-          return const Center(child: Text('暂无图片'));
+          return Center(child: text('暂无图片').mk);
         }
 
-        return Stack(children: [_buildImageViewer(), if (controller.showAppBar) _buildBottomBar()]);
+        return stack.children([_buildImageViewer(), if (controller.showAppBar) _buildBottomBar()]);
       }),
     );
   }
@@ -47,48 +46,26 @@ class ReaderPage extends GetView<ReaderController> {
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: Colors.black.withValues(alpha: 0.7),
-      leading: IconButton(
-        onPressed: Get.back,
-        icon: Icon(Icons.arrow_back_ios_outlined, color: Colors.white),
-      ),
+      leading: Icons.arrow_back_ios_outlined.icon.white.iconClick(onTap: Get.back),
       title: Obx(() {
         // 使用当前显示的章节，如果没有则回退到当前章节
         final chapter = controller.currentDisplayChapter ?? controller.currentChapter;
         final hasChapterPages = chapter?.totalPages != null && chapter!.totalPages! > 1;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              chapter?.title ?? '',
-              style: const TextStyle(fontSize: 16, color: Colors.white),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Row(
-              children: [
-                Text(
-                  '图片 ${controller.currentPageIndex + 1}/${controller.totalPages}',
-                  style: const TextStyle(fontSize: 12, color: Colors.white),
-                ),
-                if (hasChapterPages) ...[
-                  const Text(' • ', style: TextStyle(fontSize: 12, color: Colors.white)),
-                  Text('第${chapter.currentPage ?? 1}/${chapter.totalPages}页', style: const TextStyle(fontSize: 12)),
-                ],
-              ],
-            ),
-          ],
-        );
+        return column.crossStart.children([
+          text(chapter?.title).ellipsis.maxLine1.f16.white.mk,
+          row.children([
+            text('图片 ${controller.currentPageIndex + 1}/${controller.totalPages}').f12.white.mk,
+            if (hasChapterPages) ...[
+              text(' • ').f12.white.mk,
+              text('第${chapter.currentPage ?? 1}/${chapter.totalPages}页').f12.mk,
+            ],
+          ]),
+        ]);
       }),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.list, color: Colors.white),
-          onPressed: controller.showChapterList,
-        ),
-        IconButton(
-          icon: const Icon(Icons.settings, color: Colors.white),
-          onPressed: controller.showReadingSettings,
-        ),
+        Icons.list.icon.white.iconClick(onTap: controller.showChapterList),
+        Icons.settings.icon.white.iconClick(onTap: controller.showReadingSettings),
       ],
     );
   }
@@ -146,21 +123,17 @@ class ReaderPage extends GetView<ReaderController> {
       // 直接使用图片URL数组，这样能正确显示自动加载的图片
       final imageUrls = controller.imageUrls;
       if (imageUrls.isEmpty) {
-        return const Center(child: Text('暂无图片'));
+        return Center(child: text('暂无图片').mk);
       }
 
       return GestureDetector(
         onLongPress: controller.showUITemporarily,
-        child: ListView.builder(
-          controller: controller.scrollController,
-          itemCount: imageUrls.length + (controller.isLoadingNextChapter ? 1 : 0), // 只在加载时+1
-          itemBuilder: (context, index) {
-            // 最后一个item显示加载状态
+        child: listview.controller(controller.scrollController).builder(
+          imageUrls.length + (controller.isLoadingNextChapter ? 1 : 0),
+          (context, index) {
             if (index == imageUrls.length && controller.isLoadingNextChapter) {
               return _buildLoadingIndicator();
             }
-            
-            // 直接使用URL构建图片
             return _buildSimpleImage(imageUrls[index], index);
           },
         ),
@@ -168,63 +141,16 @@ class ReaderPage extends GetView<ReaderController> {
     });
   }
 
-
-
   /// 简单图片显示（用于ListView，不使用PhotoView）
   Widget _buildSimpleImage(String imageUrl, int index) {
     return Builder(
       key: ValueKey(imageUrl),
       builder: (context) => GestureDetector(
         onTap: () => _showImageDetailByUrl(imageUrl, index, context),
-        child: Container(
-          width: double.infinity,
-          constraints: const BoxConstraints(minHeight: 200, maxHeight: 800),
-          color: Colors.black,
-          child: CachedNetworkImage(
-            key: ValueKey('${imageUrl}_cached'),
-            imageUrl: imageUrl,
-            fit: BoxFit.contain,
-            placeholder: (context, url) => Container(
-              height: 300,
-              color: Colors.grey[900],
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const CircularProgressIndicator(color: Colors.white),
-                    const SizedBox(height: 8),
-                    Text('加载中... ${index + 1}', style: const TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ),
-            ),
-            errorWidget: (context, url, error) => Container(
-              height: 300,
-              color: Colors.grey[900],
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error, color: Colors.red, size: 48),
-                    const SizedBox(height: 8),
-                    Text('图片加载失败 ${index + 1}', style: const TextStyle(color: Colors.white)),
-                    const SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: () {
-                        // 可以触发重新加载
-                      },
-                      child: const Text('重试'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
+        child: container.wFull.maxHeight(800).minHeight(200).black.child(image(imageUrl).contain.mk),
       ),
     );
   }
-
 
   /// 通过URL显示图片详情
   void _showImageDetailByUrl(String imageUrl, int index, BuildContext context) {
@@ -236,31 +162,14 @@ class ReaderPage extends GetView<ReaderController> {
       ),
     );
   }
-  
-  
+
   /// 构建加载指示器
   Widget _buildLoadingIndicator() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
-      color: Colors.black,
-      child: Column(
-        children: [
-          const CircularProgressIndicator(
-            color: Colors.white,
-            strokeWidth: 2,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '正在加载下一章节...',
-            style: TextStyle(
-              color: Colors.grey[400],
-              fontSize: 14,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+    return container.wFull.p32.black.child(
+      column.spacing16.children([
+        const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+        text('正在加载下一章节...').center.f14.grey400.mk,
+      ]),
     );
   }
 
@@ -272,69 +181,32 @@ class ReaderPage extends GetView<ReaderController> {
       maxScale: PhotoViewComputedScale.covered * 3.0,
       initialScale: PhotoViewComputedScale.contained,
       loadingBuilder: (context, event) => const Center(child: CircularProgressIndicator()),
-      errorBuilder: (context, error, stackTrace) => const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.broken_image, size: 64, color: Colors.grey),
-            SizedBox(height: 8),
-            Text('图片加载失败', style: TextStyle(color: Colors.grey)),
-          ],
-        ),
-      ),
+      errorBuilder: (context, error, stackTrace) =>
+          Center(child: column.center.spacing8.children([Icons.broken_image.icon.s64.grey.mk, text('图片加载失败').grey.mk])),
     );
   }
 
   Widget _buildBottomBar() {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        color: Colors.black.withOpacity(0.7),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16,vertical: 8),
-          child: Row(
-            children: [
-              // 上一页按钮
-              IconButton(
-                icon: const Icon(Icons.keyboard_arrow_left, color: Colors.white),
-                onPressed: controller.isFirstPage ? null : controller.previousPage,
-              ),
-
-              // 上一章按钮
-              TextButton(
-                onPressed: controller.previousChapter,
-                child: const Text('上一章', style: TextStyle(color: Colors.white)),
-              ),
-
-              const Spacer(),
-
-              // 页码指示器
-              Obx(
-                () => Text(
-                  '${controller.currentPageIndex + 1}/${controller.totalPages}',
-                  style: const TextStyle(color: Colors.white),
+    return positioned.l0.r0.b0.child(
+      container
+          .color(Colors.black.withOpacity(0.7))
+          .child(
+            padding.ph16.pv8.child(
+              row.children([
+                Icons.keyboard_arrow_left.icon.white.iconClick(
+                  onTap: controller.isFirstPage ? null : controller.previousPage,
                 ),
-              ),
-
-              const Spacer(),
-
-              // 下一章按钮
-              TextButton(
-                onPressed: controller.nextChapter,
-                child: const Text('下一章', style: TextStyle(color: Colors.white)),
-              ),
-
-              // 下一页按钮
-              IconButton(
-                icon: const Icon(Icons.keyboard_arrow_right, color: Colors.white),
-                onPressed: controller.isLastPage ? null : controller.nextPage,
-              ),
-            ],
+                textButton().child(text('上一章').white.mk).click(onTap: controller.previousChapter),
+                spacer,
+                Obx(() => text('${controller.currentPageIndex + 1}/${controller.totalPages}').white.mk),
+                spacer,
+                textButton().child(text('下一章').white.mk).click(onTap: controller.nextChapter),
+                Icons.keyboard_arrow_right.icon.white.iconClick(
+                  onTap: controller.isLastPage ? null : controller.nextPage,
+                ),
+              ]),
+            ),
           ),
-        ),
-      ),
     );
   }
 }
@@ -353,16 +225,9 @@ class _ImageDetailPage extends StatelessWidget {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black.withValues(alpha: 0.7),
-        title: Text('${imageIndex + 1} / $totalImages', style: const TextStyle(color: Colors.white)),
+        title: text('${imageIndex + 1} / $totalImages').white.mk,
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share, color: Colors.white),
-            onPressed: () {
-              // 分享功能
-            },
-          ),
-        ],
+        actions: [Icons.share.icon.white.iconClick(onTap: () {})],
       ),
       body: Center(
         child: PhotoView(
@@ -373,15 +238,8 @@ class _ImageDetailPage extends StatelessWidget {
           initialScale: PhotoViewComputedScale.contained,
           backgroundDecoration: const BoxDecoration(color: Colors.black),
           loadingBuilder: (context, event) => const Center(child: CircularProgressIndicator(color: Colors.white)),
-          errorBuilder: (context, error, stackTrace) => const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.broken_image, size: 64, color: Colors.grey),
-                SizedBox(height: 8),
-                Text('图片加载失败', style: TextStyle(color: Colors.grey)),
-              ],
-            ),
+          errorBuilder: (context, error, stackTrace) => Center(
+            child: column.center.spacing8.children([Icons.broken_image.icon.s64.grey.mk, text('图片加载失败').grey.mk]),
           ),
         ),
       ),

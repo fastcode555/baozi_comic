@@ -13,10 +13,9 @@ ComicImage _$ComicImageFromJson(Map<String, dynamic> json) => ComicImage(
   index: (json['index'] as num).toInt(),
 );
 
-Map<String, dynamic> _$ComicImageToJson(ComicImage instance) =>
-    <String, dynamic>{
-      'url': instance.url,
-      'width': instance.width,
-      'height': instance.height,
-      'index': instance.index,
-    };
+Map<String, dynamic> _$ComicImageToJson(ComicImage instance) => <String, dynamic>{
+  'url': instance.url,
+  'width': instance.width,
+  'height': instance.height,
+  'index': instance.index,
+};

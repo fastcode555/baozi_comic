@@ -1,5 +1,5 @@
+import 'package:baozi_comic/models/comic.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'comic.dart';
 
 part 'search_result.g.dart';
 
@@ -11,15 +11,10 @@ class SearchResult {
   final int? currentPage;
   final int? totalPages;
 
-  const SearchResult({
-    required this.comics,
-    this.query,
-    this.totalCount,
-    this.currentPage,
-    this.totalPages,
-  });
+  SearchResult({required this.comics, this.query, this.totalCount, this.currentPage, this.totalPages});
 
   factory SearchResult.fromJson(Map<String, dynamic> json) => _$SearchResultFromJson(json);
+
   Map<String, dynamic> toJson() => _$SearchResultToJson(this);
 
   @override

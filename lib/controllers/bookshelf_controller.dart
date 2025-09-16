@@ -1,7 +1,8 @@
+import 'package:baozi_comic/models/models.dart';
+import 'package:baozi_comic/services/services.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tailwind/flutter_tailwind.dart';
 import 'package:get/get.dart';
-import '../models/models.dart';
-import '../services/services.dart';
 
 enum BookshelfTab { favorites, history }
 
@@ -20,22 +21,28 @@ class BookshelfController extends GetxController with GetSingleTickerProviderSta
 
   // Getters
   List<Comic> get favorites => _favorites;
+
   List<ReadingHistory> get readingHistory => _readingHistory;
+
   BookshelfTab get currentTab => _currentTab.value;
+
   bool get isLoading => _isLoading.value;
+
   String get error => _error.value;
+
   bool get hasFavorites => _favorites.isNotEmpty;
+
   bool get hasHistory => _readingHistory.isNotEmpty;
 
   @override
   void onInit() {
     super.onInit();
     _storageService = Get.find<StorageService>();
-    
+
     // 初始化TabController
     tabController = TabController(length: 2, vsync: this);
     tabController.addListener(_onTabChanged);
-    
+
     loadData();
   }
 
@@ -57,10 +64,7 @@ class BookshelfController extends GetxController with GetSingleTickerProviderSta
     _error.value = '';
 
     try {
-      await Future.wait([
-        loadFavorites(),
-        loadReadingHistory(),
-      ]);
+      await Future.wait([loadFavorites(), loadReadingHistory()]);
     } catch (e) {
       _error.value = '加载数据失败: $e';
       print('BookshelfController loadData error: $e');
@@ -76,7 +80,7 @@ class BookshelfController extends GetxController with GetSingleTickerProviderSta
       _favorites.value = favorites;
     } catch (e) {
       print('Failed to load favorites: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -87,7 +91,7 @@ class BookshelfController extends GetxController with GetSingleTickerProviderSta
       _readingHistory.value = history;
     } catch (e) {
       print('Failed to load reading history: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -137,17 +141,11 @@ class BookshelfController extends GetxController with GetSingleTickerProviderSta
     try {
       final result = await Get.dialog<bool>(
         AlertDialog(
-          title: const Text('确认清空'),
-          content: const Text('确定要清空所有收藏吗？此操作不可恢复。'),
+          title: text('确认清空').mk,
+          content: text('确定要清空所有收藏吗？此操作不可恢复。').mk,
           actions: [
-            TextButton(
-              onPressed: () => Get.back(result: false),
-              child: const Text('取消'),
-            ),
-            TextButton(
-              onPressed: () => Get.back(result: true),
-              child: const Text('确定'),
-            ),
+            textButton('取消').click(onTap: () => Get.back(result: false)),
+            textButton('确定').click(onTap: () => Get.back(result: true)),
           ],
         ),
       );
@@ -170,17 +168,11 @@ class BookshelfController extends GetxController with GetSingleTickerProviderSta
     try {
       final result = await Get.dialog<bool>(
         AlertDialog(
-          title: const Text('确认清空'),
-          content: const Text('确定要清空所有历史记录吗？此操作不可恢复。'),
+          title: text('确认清空').mk,
+          content: text('确定要清空所有历史记录吗？此操作不可恢复。').mk,
           actions: [
-            TextButton(
-              onPressed: () => Get.back(result: false),
-              child: const Text('取消'),
-            ),
-            TextButton(
-              onPressed: () => Get.back(result: true),
-              child: const Text('确定'),
-            ),
+            textButton('取消').click(onTap: () => Get.back(result: false)),
+            textButton('确定').click(onTap: () => Get.back(result: true)),
           ],
         ),
       );
@@ -214,18 +206,18 @@ class BookshelfController extends GetxController with GetSingleTickerProviderSta
   /// 搜索收藏
   List<Comic> searchFavorites(String query) {
     if (query.trim().isEmpty) return _favorites;
-    
+
     final lowercaseQuery = query.toLowerCase();
     return _favorites.where((comic) {
       return comic.title.toLowerCase().contains(lowercaseQuery) ||
-             (comic.author?.toLowerCase().contains(lowercaseQuery) ?? false);
+          (comic.author?.toLowerCase().contains(lowercaseQuery) ?? false);
     }).toList();
   }
 
   /// 搜索历史记录
   List<ReadingHistory> searchHistory(String query) {
     if (query.trim().isEmpty) return _readingHistory;
-    
+
     final lowercaseQuery = query.toLowerCase();
     return _readingHistory.where((history) {
       return history.comicTitle.toLowerCase().contains(lowercaseQuery);
@@ -240,49 +232,36 @@ class BookshelfController extends GetxController with GetSingleTickerProviderSta
   /// 显示更多操作
   void showMoreActions() {
     Get.bottomSheet(
-      Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                '更多操作',
-                style: Get.textTheme.titleLarge,
-              ),
-            ),
-            if (_currentTab.value == BookshelfTab.favorites)
-              ListTile(
-                leading: const Icon(Icons.clear_all),
-                title: const Text('清空收藏'),
-                onTap: () {
-                  Get.back();
-                  clearFavorites();
-                },
-              ),
-            if (_currentTab.value == BookshelfTab.history)
-              ListTile(
-                leading: const Icon(Icons.history_toggle_off),
-                title: const Text('清空历史记录'),
-                onTap: () {
-                  Get.back();
-                  clearHistory();
-                },
-              ),
+      container.white.roundedT16.child(
+        column.min.children([
+          container.p16.child(text('更多操作').mk),
+          if (_currentTab.value == BookshelfTab.favorites)
             ListTile(
-              leading: const Icon(Icons.refresh),
-              title: const Text('刷新'),
+              leading: const Icon(Icons.clear_all),
+              title: text('清空收藏').mk,
               onTap: () {
                 Get.back();
-                refreshData();
+                clearFavorites();
               },
             ),
-          ],
-        ),
+          if (_currentTab.value == BookshelfTab.history)
+            ListTile(
+              leading: const Icon(Icons.history_toggle_off),
+              title: text('清空历史记录').mk,
+              onTap: () {
+                Get.back();
+                clearHistory();
+              },
+            ),
+          ListTile(
+            leading: const Icon(Icons.refresh),
+            title: text('刷新').mk,
+            onTap: () {
+              Get.back();
+              refreshData();
+            },
+          ),
+        ]),
       ),
     );
   }

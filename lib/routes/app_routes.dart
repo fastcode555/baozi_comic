@@ -1,10 +1,10 @@
 abstract class AppRoutes {
-  static const String initial = '/';
-  static const String home = '/home';
-  static const String search = '/search';
-  static const String comic = '/comic/:id';
-  static const String reader = '/reader/:comicId/:chapterId';
-  static const String bookshelf = '/bookshelf';
-  static const String categories = '/categories';
-  static const String category = '/category/:id';
+  static String initial = '/';
+  static String home = '/home';
+  static String search = '/search';
+  static String comic = '/comic/:id';
+  static String reader = '/reader/:comicId/:chapterId';
+  static String bookshelf = '/bookshelf';
+  static String categories = '/categories';
+  static String category = '/category/:id';
 }

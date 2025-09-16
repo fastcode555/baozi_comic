@@ -16,7 +16,7 @@ class Comic {
   final String? category;
   final int? ranking;
 
-  const Comic({
+  Comic({
     required this.id,
     required this.title,
     this.coverUrl,
@@ -31,12 +31,12 @@ class Comic {
   });
 
   factory Comic.fromJson(Map<String, dynamic> json) => _$ComicFromJson(json);
+
   Map<String, dynamic> toJson() => _$ComicToJson(this);
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Comic && runtimeType == other.runtimeType && id == other.id;
+      identical(this, other) || other is Comic && runtimeType == other.runtimeType && id == other.id;
 
   @override
   int get hashCode => id.hashCode;

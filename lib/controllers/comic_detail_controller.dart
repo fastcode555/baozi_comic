@@ -1,6 +1,6 @@
+import 'package:baozi_comic/models/models.dart';
+import 'package:baozi_comic/services/services.dart';
 import 'package:get/get.dart';
-import '../models/models.dart';
-import '../services/services.dart';
 
 class ComicDetailController extends GetxController {
   late final StorageService _storageService;
@@ -18,18 +18,24 @@ class ComicDetailController extends GetxController {
 
   // Getters
   Comic? get comic => _comic.value;
+
   List<Chapter> get chapters => _chapters;
+
   bool get isFavorite => _isFavorite.value;
+
   bool get isLoading => _isLoading.value;
+
   String get error => _error.value;
+
   ReadingHistory? get lastReadChapter => _lastReadChapter.value;
+
   bool get hasChapters => _chapters.isNotEmpty;
 
   @override
   void onInit() {
     super.onInit();
     _storageService = Get.find<StorageService>();
-    
+
     // 获取传递的参数
     final args = Get.arguments;
     if (args is Comic) {
@@ -61,7 +67,7 @@ class ComicDetailController extends GetxController {
       // 处理漫画详情
       final comicResult = results[0] as ApiResponse<Comic>;
       if (comicResult.success && comicResult.data != null) {
-        _comic.value = comicResult.data!;
+        _comic.value = comicResult.data;
       } else if (comicResult.message != null) {
         _error.value = comicResult.message!;
       }
@@ -71,7 +77,6 @@ class ComicDetailController extends GetxController {
       if (chaptersResult.success && chaptersResult.data != null) {
         _chapters.value = chaptersResult.data!;
       }
-
     } catch (e) {
       _error.value = '加载漫画详情失败: $e';
       print('ComicDetailController loadComicDetail error: $e');
@@ -123,7 +128,7 @@ class ComicDetailController extends GetxController {
     if (_chapters.isEmpty) return;
 
     Chapter chapterToRead;
-    
+
     // 如果有阅读历史，继续阅读
     if (_lastReadChapter.value != null) {
       final lastChapterId = _lastReadChapter.value!.lastChapterId;
@@ -153,11 +158,10 @@ class ComicDetailController extends GetxController {
 
   /// 导航到阅读器
   void goToReader(Chapter chapter) {
-    Get.toNamed('/reader/${chapter.comicId}/${chapter.id}', arguments: {
-      'comic': _comic.value,
-      'chapter': chapter,
-      'chapters': _chapters,
-    });
+    Get.toNamed(
+      '/reader/${chapter.comicId}/${chapter.id}',
+      arguments: {'comic': _comic.value, 'chapter': chapter, 'chapters': _chapters},
+    );
   }
 
   /// 刷新数据
@@ -168,11 +172,12 @@ class ComicDetailController extends GetxController {
   /// 分享漫画
   void shareComic() {
     if (_comic.value == null) return;
-    
-    final shareText = '推荐一部漫画：${_comic.value!.title}\n'
+
+    final shareText =
+        '推荐一部漫画：${_comic.value!.title}\n'
         '${_comic.value!.description ?? ''}\n'
         '快来包子漫画看吧！';
-    
+
     // 这里可以使用 share_plus 插件实现分享
     Get.snackbar('分享', shareText);
   }

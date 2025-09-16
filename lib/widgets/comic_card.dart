@@ -1,107 +1,44 @@
+import 'package:baozi_comic/models/models.dart';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../models/models.dart';
+import 'package:flutter_tailwind/flutter_tailwind.dart';
 
 class ComicCard extends StatelessWidget {
   final Comic comic;
   final VoidCallback? onTap;
   final bool showRanking;
 
-  const ComicCard({
-    super.key,
-    required this.comic,
-    this.onTap,
-    this.showRanking = false,
-  });
+  const ComicCard({required this.comic, super.key, this.onTap, this.showRanking = false});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Stack(
-                children: [
-                  CachedNetworkImage(
-                    imageUrl: comic.coverUrl ?? '',
-                    width: double.infinity,
-                    height: double.infinity,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.image),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.broken_image),
-                    ),
-                  ),
-                  if (showRanking && comic.ranking != null)
-                    Positioned(
-                      top: 4,
-                      left: 4,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getRankingColor(comic.ranking!),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${comic.ranking}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+      child: column.crossStart.children([
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: stack.children([
+              image(comic.coverUrl).cover.mk,
+              if (showRanking && comic.ranking != null)
+                positioned.l4.t4.child(
+                  container.ph6.pv2
+                      .color(_getRankingColor(comic.ranking!))
+                      .rounded10
+                      .child(text('${comic.ranking}').f10.bold.white.mk),
+                ),
+            ]),
           ),
-          const SizedBox(height: 4),
-          Text(
-            comic.title,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (comic.lastUpdate != null) ...[
-            const SizedBox(height: 2),
-            Text(
-              comic.lastUpdate!,
-              style: const TextStyle(
-                fontSize: 10,
-                color: Colors.grey,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ] else if (comic.author != null) ...[
-            const SizedBox(height: 2),
-            Text(
-              comic.author!,
-              style: const TextStyle(
-                fontSize: 10,
-                color: Colors.grey,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+        ),
+        h4,
+        text(comic.title).ellipsis.maxLine2.f12.w500.mk,
+        if (comic.lastUpdate != null) ...[
+          h2,
+          text(comic.lastUpdate).ellipsis.maxLine1.f10.grey.mk,
+        ] else if (comic.author != null) ...[
+          h2,
+          text(comic.author).ellipsis.maxLine1.f10.grey.mk,
         ],
-      ),
+      ]),
     );
   }
 

@@ -1,54 +1,54 @@
+import 'package:baozi_comic/controllers/controllers.dart';
+import 'package:baozi_comic/pages/bookshelf_page.dart';
+import 'package:baozi_comic/pages/comic_detail_page.dart';
+import 'package:baozi_comic/pages/home_page.dart';
+import 'package:baozi_comic/pages/reader_page.dart';
+import 'package:baozi_comic/pages/search_page.dart';
+import 'package:baozi_comic/routes/app_routes.dart';
 import 'package:get/get.dart';
-import '../pages/home_page.dart';
-import '../pages/search_page.dart';
-import '../pages/comic_detail_page.dart';
-import '../pages/reader_page.dart';
-import '../pages/bookshelf_page.dart';
-import '../controllers/controllers.dart';
-import 'app_routes.dart';
 
 class AppPages {
   static final List<GetPage> pages = [
     GetPage(
       name: AppRoutes.initial,
-      page: () => const HomePage(),
+      page: HomePage.new,
       binding: BindingsBuilder(() {
-        Get.lazyPut<HomeController>(() => HomeController());
+        Get.lazyPut<HomeController>(HomeController.new);
       }),
     ),
     GetPage(
       name: AppRoutes.home,
-      page: () => const HomePage(),
+      page: HomePage.new,
       binding: BindingsBuilder(() {
-        Get.lazyPut<HomeController>(() => HomeController());
+        Get.lazyPut<HomeController>(HomeController.new);
       }),
     ),
     GetPage(
       name: AppRoutes.search,
-      page: () => const SearchPage(),
+      page: SearchPage.new,
       binding: BindingsBuilder(() {
-        Get.lazyPut<SearchController>(() => SearchController());
+        Get.lazyPut<SearchController>(SearchController.new);
       }),
     ),
     GetPage(
       name: AppRoutes.comic,
-      page: () => const ComicDetailPage(),
+      page: ComicDetailPage.new,
       binding: BindingsBuilder(() {
-        Get.lazyPut<ComicDetailController>(() => ComicDetailController());
+        Get.lazyPut<ComicDetailController>(ComicDetailController.new);
       }),
     ),
     GetPage(
       name: AppRoutes.reader,
-      page: () => const ReaderPage(),
+      page: ReaderPage.new,
       binding: BindingsBuilder(() {
-        Get.lazyPut<ReaderController>(() => ReaderController());
+        Get.lazyPut<ReaderController>(ReaderController.new);
       }),
     ),
     GetPage(
       name: AppRoutes.bookshelf,
-      page: () => const BookshelfPage(),
+      page: BookshelfPage.new,
       binding: BindingsBuilder(() {
-        Get.lazyPut<BookshelfController>(() => BookshelfController());
+        Get.lazyPut<BookshelfController>(BookshelfController.new);
       }),
     ),
   ];

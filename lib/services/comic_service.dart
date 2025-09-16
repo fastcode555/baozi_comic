@@ -1,12 +1,11 @@
-import '../models/models.dart';
-import 'http_service.dart';
-import 'parser_service.dart';
+import 'package:baozi_comic/models/models.dart';
+import 'package:baozi_comic/services/http_service.dart';
+import 'package:baozi_comic/services/parser_service.dart';
 
 class ComicService {
-  
   /// 获取首页HTML内容（用于解析所有分类）
   static Future<String> _getHomepageContent() async {
-    return await HttpService.get(HttpService.baseUrl);
+    return HttpService.get(HttpService.baseUrl);
   }
 
   /// 获取热门漫画
@@ -127,7 +126,7 @@ class ComicService {
     try {
       // 构建正确的章节URL，基于分析的URL模式
       // 例如：https://www.twmanga.com/comic/chapter/silingfashiwojishitianzai-mantudezhuyuanzhuheiniaoshe_rjogsq/0_210.html
-      final url = 'https://www.twmanga.com/comic/chapter/${comicId}/0_${chapterId}.html';
+      final url = 'https://www.twmanga.com/comic/chapter/$comicId/0_$chapterId.html';
       final htmlContent = await HttpService.get(url);
       final imageUrls = ParserService.parseChapterImages(htmlContent);
       return ApiResponse.success(imageUrls);
@@ -140,7 +139,7 @@ class ComicService {
   static Future<ApiResponse<Chapter>> getChapterDetail(String comicId, String chapterId) async {
     try {
       // 构建正确的章节URL
-      final url = 'https://www.twmanga.com/comic/chapter/${comicId}/0_${chapterId}.html';
+      final url = 'https://www.twmanga.com/comic/chapter/$comicId/0_$chapterId.html';
       final htmlContent = await HttpService.get(url);
       final chapter = ParserService.parseChapterDetail(htmlContent, chapterId, comicId);
       return ApiResponse.success(chapter);

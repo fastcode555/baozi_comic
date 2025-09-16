@@ -1,7 +1,7 @@
+import 'package:baozi_comic/models/models.dart';
+import 'package:baozi_comic/services/services.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../models/models.dart';
-import '../services/services.dart';
 
 class SearchController extends GetxController {
   late final StorageService _storageService;
@@ -13,20 +13,28 @@ class SearchController extends GetxController {
   final _categories = <Category>[].obs;
   final _isLoading = false.obs;
   final _error = ''.obs;
-  
+
   // 搜索控制器
   final searchTextController = TextEditingController();
   final focusNode = FocusNode();
-  
+
   // Getters
   List<Comic> get searchResults => _searchResults;
+
   List<String> get searchHistory => _searchHistory;
+
   List<String> get suggestions => _suggestions;
+
   List<Category> get categories => _categories;
+
   bool get isLoading => _isLoading.value;
+
   String get error => _error.value;
+
   bool get hasResults => _searchResults.isNotEmpty;
+
   bool get hasHistory => _searchHistory.isNotEmpty;
+
   bool get hasSuggestions => _suggestions.isNotEmpty;
 
   @override
@@ -59,7 +67,7 @@ class SearchController extends GetxController {
     try {
       _isLoading.value = true;
       _error.value = '';
-      
+
       final response = await ComicService.getCategories();
       if (response.success) {
         _categories.assignAll(response.data!);
@@ -77,15 +85,15 @@ class SearchController extends GetxController {
   /// 搜索漫画
   Future<void> searchComics(String query) async {
     if (query.trim().isEmpty) return;
-    
+
     try {
       _isLoading.value = true;
       _error.value = '';
-      
+
       // 添加到搜索历史
       await _storageService.addSearchHistory(query);
       await _loadSearchHistory();
-      
+
       // 执行搜索
       final response = await ComicService.searchComics(query);
       if (response.success) {
@@ -93,10 +101,9 @@ class SearchController extends GetxController {
       } else {
         _error.value = response.message ?? '搜索失败';
       }
-      
+
       // 清空建议
       _suggestions.clear();
-      
     } catch (e) {
       _error.value = e.toString();
       print('Error searching comics: $e');
@@ -111,7 +118,7 @@ class SearchController extends GetxController {
       _suggestions.clear();
       return;
     }
-    
+
     try {
       final response = await ComicService.getSearchSuggestions(query);
       if (response.success) {
@@ -127,14 +134,13 @@ class SearchController extends GetxController {
     try {
       _isLoading.value = true;
       _error.value = '';
-      
+
       final response = await ComicService.getComicsByCategory(categoryId);
       if (response.success) {
         _searchResults.assignAll(response.data!);
       } else {
         _error.value = response.message ?? '按分类搜索失败';
       }
-      
     } catch (e) {
       _error.value = e.toString();
       print('Error searching by category: $e');

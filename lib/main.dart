@@ -32,9 +32,8 @@ class BaoziComicApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final bool isLandscape = constraints.maxWidth > constraints.maxHeight;
-        final Size designSize =
-            isLandscape ? const Size(812, 375) : const Size(375, 812);
+        final isLandscape = constraints.maxWidth > constraints.maxHeight;
+        final designSize = isLandscape ? const Size(812, 375) : const Size(375, 812);
 
         return ScreenUtilInit(
           designSize: designSize, // 根据窗口比例自适应设计尺寸
@@ -67,9 +66,7 @@ class BaoziComicApp extends StatelessWidget {
                   backgroundColor: Color(0xFFFFD700),
                   foregroundColor: Colors.black87,
                 ),
-                progressIndicatorTheme: const ProgressIndicatorThemeData(
-                  color: Color(0xFFFFD700),
-                ),
+                progressIndicatorTheme: const ProgressIndicatorThemeData(color: Color(0xFFFFD700)),
                 useMaterial3: true,
               ),
               initialRoute: AppRoutes.initial,

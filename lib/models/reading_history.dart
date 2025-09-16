@@ -12,25 +12,23 @@ class ReadingHistory {
   final int? lastReadPage;
   final DateTime lastReadTime;
 
-  const ReadingHistory({
+  ReadingHistory({
     required this.comicId,
     required this.comicTitle,
+    required this.lastReadTime,
     this.comicCoverUrl,
     this.lastChapterId,
     this.lastChapterTitle,
     this.lastReadPage,
-    required this.lastReadTime,
   });
 
   factory ReadingHistory.fromJson(Map<String, dynamic> json) => _$ReadingHistoryFromJson(json);
+
   Map<String, dynamic> toJson() => _$ReadingHistoryToJson(this);
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is ReadingHistory && 
-      runtimeType == other.runtimeType && 
-      comicId == other.comicId;
+      identical(this, other) || other is ReadingHistory && runtimeType == other.runtimeType && comicId == other.comicId;
 
   @override
   int get hashCode => comicId.hashCode;

@@ -1,8 +1,7 @@
+import 'package:baozi_comic/models/models.dart';
 import 'package:html/parser.dart' as html_parser;
-import '../models/models.dart';
 
 class ParserService {
-  
   /// 解析首页热门漫画（第一个section）
   static List<Comic> parseHotComics(String htmlContent) {
     return _parseComicsSection(htmlContent, 0); // 第一个section
@@ -42,145 +41,150 @@ class ParserService {
   static List<Comic> _parseComicsSection(String htmlContent, int sectionIndex) {
     final document = html_parser.parse(htmlContent);
     final sections = document.querySelectorAll('.index-recommend-items, .recent');
-    
+
     if (sectionIndex >= sections.length) {
       print('Section index $sectionIndex out of range');
       return [];
     }
-    
+
     final section = sections[sectionIndex];
     final comicCards = section.querySelectorAll('.comics-card');
-    
-    return comicCards.map((card) {
-      try {
-        // 获取漫画链接
-        final linkElement = card.querySelector('a[href*="/comic/"]');
-        final href = linkElement?.attributes['href'] ?? '';
-        final id = _extractComicId(href);
-        
-        // 获取标题
-        final titleElement = card.querySelector('.comics-card__title h3');
-        final title = titleElement?.text.trim() ?? '';
-        
-        // 获取封面图片，使用285x375尺寸
-        final imgElement = card.querySelector('amp-img');
-        var coverUrl = imgElement?.attributes['src'] ?? '';
-        
-        // 替换图片尺寸为285x375
-        if (coverUrl.contains('?w=') && coverUrl.contains('&h=')) {
-          coverUrl = coverUrl.replaceAll(RegExp(r'\?w=\d+&h=\d+'), '?w=285&h=375');
-        } else if (coverUrl.isNotEmpty && !coverUrl.contains('?')) {
-          coverUrl += '?w=285&h=375';
-        }
-        
-        // 获取"更新至xx"信息
-        final updateElement = card.querySelector('.comics-card__info small');
-        final lastUpdate = updateElement?.text.trim() ?? '';
-        
-        // 获取标签
-        final tagElements = card.querySelectorAll('.tab');
-        final tags = tagElements.map((e) => e.text.trim()).toList();
-        
-        // 获取排名（仅对热门漫画有效）
-        final badgeElement = card.querySelector('.comics-card__badge');
-        final rankingText = badgeElement?.text.trim();
-        final ranking = rankingText != null ? int.tryParse(rankingText) : null;
-        
-        return Comic(
-          id: id,
-          title: title,
-          coverUrl: _buildImageUrl(coverUrl),
-          lastUpdate: lastUpdate.isNotEmpty ? lastUpdate : null,
-          tags: tags,
-          ranking: ranking,
-        );
-      } catch (e) {
-        print('Error parsing comic card in section $sectionIndex: $e');
-        return null;
-      }
-    }).where((comic) => comic != null && comic.id.isNotEmpty).cast<Comic>().toList();
+
+    return comicCards
+        .map((card) {
+          try {
+            // 获取漫画链接
+            final linkElement = card.querySelector('a[href*="/comic/"]');
+            final href = linkElement?.attributes['href'] ?? '';
+            final id = _extractComicId(href);
+
+            // 获取标题
+            final titleElement = card.querySelector('.comics-card__title h3');
+            final title = titleElement?.text.trim() ?? '';
+
+            // 获取封面图片，使用285x375尺寸
+            final imgElement = card.querySelector('amp-img');
+            var coverUrl = imgElement?.attributes['src'] ?? '';
+
+            // 替换图片尺寸为285x375
+            if (coverUrl.contains('?w=') && coverUrl.contains('&h=')) {
+              coverUrl = coverUrl.replaceAll(RegExp(r'\?w=\d+&h=\d+'), '?w=285&h=375');
+            } else if (coverUrl.isNotEmpty && !coverUrl.contains('?')) {
+              coverUrl += '?w=285&h=375';
+            }
+
+            // 获取"更新至xx"信息
+            final updateElement = card.querySelector('.comics-card__info small');
+            final lastUpdate = updateElement?.text.trim() ?? '';
+
+            // 获取标签
+            final tagElements = card.querySelectorAll('.tab');
+            final tags = tagElements.map((e) => e.text.trim()).toList();
+
+            // 获取排名（仅对热门漫画有效）
+            final badgeElement = card.querySelector('.comics-card__badge');
+            final rankingText = badgeElement?.text.trim();
+            final ranking = rankingText != null ? int.tryParse(rankingText) : null;
+
+            return Comic(
+              id: id,
+              title: title,
+              coverUrl: _buildImageUrl(coverUrl),
+              lastUpdate: lastUpdate.isNotEmpty ? lastUpdate : null,
+              tags: tags,
+              ranking: ranking,
+            );
+          } catch (e) {
+            print('Error parsing comic card in section $sectionIndex: $e');
+            return null;
+          }
+        })
+        .where((comic) => comic != null && comic.id.isNotEmpty)
+        .cast<Comic>()
+        .toList();
   }
 
   /// 解析搜索结果
   static SearchResult parseSearchResults(String htmlContent, String query) {
     final document = html_parser.parse(htmlContent);
     final comicCards = document.querySelectorAll('.comics-card');
-    
-    final comics = comicCards.map((card) {
-      try {
-        final linkElement = card.querySelector('a[href*="/comic/"]');
-        final href = linkElement?.attributes['href'] ?? '';
-        final id = _extractComicId(href);
-        
-        final titleElement = card.querySelector('.comics-card__title h3');
-        final title = titleElement?.text.trim() ?? '';
-        
-        // 获取封面图片，使用285x375尺寸
-        final imgElement = card.querySelector('amp-img');
-        var coverUrl = imgElement?.attributes['src'] ?? '';
-        
-        // 替换图片尺寸为285x375
-        if (coverUrl.contains('?w=') && coverUrl.contains('&h=')) {
-          coverUrl = coverUrl.replaceAll(RegExp(r'\?w=\d+&h=\d+'), '?w=285&h=375');
-        } else if (coverUrl.isNotEmpty && !coverUrl.contains('?')) {
-          coverUrl += '?w=285&h=375';
-        }
-        
-        // 获取"更新至xx"信息或最新章节信息
-        final updateElement = card.querySelector('.comics-card__info small');
-        final updateInfo = updateElement?.text.trim() ?? '';
-        
-        final tagElements = card.querySelectorAll('.tab');
-        final tags = tagElements.map((e) => e.text.trim()).toList();
-        
-        return Comic(
-          id: id,
-          title: title,
-          coverUrl: _buildImageUrl(coverUrl),
-          latestChapter: updateInfo.isNotEmpty ? updateInfo : null,
-          lastUpdate: updateInfo.isNotEmpty ? updateInfo : null,  // 同时设置lastUpdate字段
-          tags: tags,
-        );
-      } catch (e) {
-        print('Error parsing search result: $e');
-        return null;
-      }
-    }).where((comic) => comic != null && comic.id.isNotEmpty).cast<Comic>().toList();
-    
-    return SearchResult(
-      comics: comics,
-      query: query,
-      totalCount: comics.length,
-      currentPage: 1,
-      totalPages: 1,
-    );
+
+    final comics = comicCards
+        .map((card) {
+          try {
+            final linkElement = card.querySelector('a[href*="/comic/"]');
+            final href = linkElement?.attributes['href'] ?? '';
+            final id = _extractComicId(href);
+
+            final titleElement = card.querySelector('.comics-card__title h3');
+            final title = titleElement?.text.trim() ?? '';
+
+            // 获取封面图片，使用285x375尺寸
+            final imgElement = card.querySelector('amp-img');
+            var coverUrl = imgElement?.attributes['src'] ?? '';
+
+            // 替换图片尺寸为285x375
+            if (coverUrl.contains('?w=') && coverUrl.contains('&h=')) {
+              coverUrl = coverUrl.replaceAll(RegExp(r'\?w=\d+&h=\d+'), '?w=285&h=375');
+            } else if (coverUrl.isNotEmpty && !coverUrl.contains('?')) {
+              coverUrl += '?w=285&h=375';
+            }
+
+            // 获取"更新至xx"信息或最新章节信息
+            final updateElement = card.querySelector('.comics-card__info small');
+            final updateInfo = updateElement?.text.trim() ?? '';
+
+            final tagElements = card.querySelectorAll('.tab');
+            final tags = tagElements.map((e) => e.text.trim()).toList();
+
+            return Comic(
+              id: id,
+              title: title,
+              coverUrl: _buildImageUrl(coverUrl),
+              latestChapter: updateInfo.isNotEmpty ? updateInfo : null,
+              lastUpdate: updateInfo.isNotEmpty ? updateInfo : null,
+              // 同时设置lastUpdate字段
+              tags: tags,
+            );
+          } catch (e) {
+            print('Error parsing search result: $e');
+            return null;
+          }
+        })
+        .where((comic) => comic != null && comic.id.isNotEmpty)
+        .cast<Comic>()
+        .toList();
+
+    return SearchResult(comics: comics, query: query, totalCount: comics.length, currentPage: 1, totalPages: 1);
   }
 
   /// 解析漫画详情页
   static Comic parseComicDetail(String htmlContent, String comicId) {
     final document = html_parser.parse(htmlContent);
-    
+
     // 解析标题 - 从实际HTML结构获取
-    final title = document.querySelector('.comics-detail__title')?.text.trim() ?? 
-                  _getMetaContent(document, 'og:novel:book_name') ?? 
-                  document.querySelector('title')?.text.replaceFirst('🍱', '').replaceFirst(' - 包子漫畫', '').trim() ?? '';
-    
+    final title =
+        document.querySelector('.comics-detail__title')?.text.trim() ??
+        _getMetaContent(document, 'og:novel:book_name') ??
+        document.querySelector('title')?.text.replaceFirst('🍱', '').replaceFirst(' - 包子漫畫', '').trim() ??
+        '';
+
     // 解析作者 - 从实际HTML结构获取
-    final author = document.querySelector('.comics-detail__author')?.text.trim() ?? 
-                   _getMetaContent(document, 'og:novel:author');
-    
+    final author =
+        document.querySelector('.comics-detail__author')?.text.trim() ?? _getMetaContent(document, 'og:novel:author');
+
     // 解析简介 - 从实际HTML结构获取
-    final description = document.querySelector('.comics-detail__desc')?.text.trim() ?? 
-                        _getMetaContent(document, 'og:description');
-    
+    final description =
+        document.querySelector('.comics-detail__desc')?.text.trim() ?? _getMetaContent(document, 'og:description');
+
     // 解析标签列表（包含状态和分类）
     final tagElements = document.querySelectorAll('.tag-list .tag');
     final tags = tagElements.map((e) => e.text.trim()).where((tag) => tag.isNotEmpty).toList();
-    
+
     // 从标签中提取状态（通常是第一个标签，如"連載中"）
     String? status;
     String? category;
-    
+
     for (final tag in tags) {
       if (tag.contains('連載') || tag.contains('完結') || tag.contains('休載')) {
         status = tag;
@@ -188,11 +192,11 @@ class ParserService {
         category = tag;
       }
     }
-    
+
     // 备用：从meta标签获取状态和分类
     status ??= _getMetaContent(document, 'og:novel:status');
     category ??= _getMetaContent(document, 'og:novel:category');
-    
+
     // 解析最新章节信息
     String? latestChapter;
     final supportingText = document.querySelector('.supporting-text');
@@ -208,7 +212,7 @@ class ParserService {
           }
         }
       }
-      
+
       // 如果没有找到链接，尝试用正则表达式提取
       if (latestChapter == null) {
         final latestText = supportingText.text;
@@ -218,14 +222,16 @@ class ParserService {
         }
       }
     }
-    
+
     // 备用：从meta标签获取
     latestChapter ??= _getMetaContent(document, 'og:novel:latest_chapter_name');
-    
+
     // 获取封面
-    final coverUrl = _getMetaContent(document, 'og:image') ?? 
-                     document.querySelector('.comics-detail__poster amp-img')?.attributes['src'] ?? '';
-    
+    final coverUrl =
+        _getMetaContent(document, 'og:image') ??
+        document.querySelector('.comics-detail__poster amp-img')?.attributes['src'] ??
+        '';
+
     return Comic(
       id: comicId,
       title: title,
@@ -237,13 +243,14 @@ class ParserService {
       latestChapter: latestChapter,
     );
   }
-  
+
   /// 获取meta标签内容的辅助方法
   static String? _getMetaContent(document, String property) {
     // 尝试获取 data-hid 属性
-    final metaElement = document.querySelector('meta[data-hid="$property"]') ?? 
-                        document.querySelector('meta[name="$property"]') ?? 
-                        document.querySelector('meta[property="$property"]');
+    final metaElement =
+        document.querySelector('meta[data-hid="$property"]') ??
+        document.querySelector('meta[name="$property"]') ??
+        document.querySelector('meta[property="$property"]');
     return metaElement?.attributes['content']?.trim();
   }
 
@@ -251,36 +258,36 @@ class ParserService {
   static List<Chapter> parseChapterList(String htmlContent, String comicId) {
     final document = html_parser.parse(htmlContent);
     final chapterElements = document.querySelectorAll('.comics-chapters__item');
-    
+
     // 解析所有章节
-    final rawChapters = chapterElements.asMap().entries.map((entry) {
-      final element = entry.value;
-      
-      try {
-        final href = element.attributes['href'] ?? '';
-        final titleSpan = element.querySelector('span');
-        final title = titleSpan?.text.trim() ?? '';
-        
-        final chapterId = _extractChapterId(href);
-        
-        // 从标题中提取章节号用于排序和去重
-        final chapterNumber = _extractChapterNumber(title);
-        
-        return Chapter(
-          id: chapterId,
-          title: title,
-          comicId: comicId,
-          chapterNumber: chapterNumber,
-          url: href,
-        );
-      } catch (e) {
-        print('Error parsing chapter: $e');
-        return null;
-      }
-    }).where((chapter) => chapter != null && chapter.id.isNotEmpty).cast<Chapter>().toList();
-    
+    final rawChapters = chapterElements
+        .asMap()
+        .entries
+        .map((entry) {
+          final element = entry.value;
+
+          try {
+            final href = element.attributes['href'] ?? '';
+            final titleSpan = element.querySelector('span');
+            final title = titleSpan?.text.trim() ?? '';
+
+            final chapterId = _extractChapterId(href);
+
+            // 从标题中提取章节号用于排序和去重
+            final chapterNumber = _extractChapterNumber(title);
+
+            return Chapter(id: chapterId, title: title, comicId: comicId, chapterNumber: chapterNumber, url: href);
+          } catch (e) {
+            print('Error parsing chapter: $e');
+            return null;
+          }
+        })
+        .where((chapter) => chapter != null && chapter.id.isNotEmpty)
+        .cast<Chapter>()
+        .toList();
+
     // 去重：使用Map以章节号为key，保留最后一个（通常是更完整的数据）
-    final Map<int, Chapter> uniqueChapters = {};
+    final uniqueChapters = <int, Chapter>{};
     for (final chapter in rawChapters) {
       if (chapter.chapterNumber != null) {
         uniqueChapters[chapter.chapterNumber!] = chapter;
@@ -292,7 +299,7 @@ class ParserService {
         }
       }
     }
-    
+
     // 按章节号排序：从小到大（1, 2, 3, ...）
     final sortedChapters = uniqueChapters.values.toList();
     sortedChapters.sort((a, b) {
@@ -300,7 +307,7 @@ class ParserService {
       final bNum = b.chapterNumber ?? 999999;
       return aNum.compareTo(bNum);
     });
-    
+
     print('解析章节列表: 原始${rawChapters.length}章，去重后${sortedChapters.length}章');
     return sortedChapters;
   }
@@ -308,90 +315,85 @@ class ParserService {
   /// 解析章节图片
   static List<String> parseChapterImages(String htmlContent) {
     final document = html_parser.parse(htmlContent);
-    
+
     // 查找所有包含baozicdn.com的amp-img标签
     final imageElements = document.querySelectorAll('amp-img[src*="baozicdn.com"]');
     final imageUrls = <String>[];
-    
+
     for (final imgElement in imageElements) {
       final src = imgElement.attributes['src'];
       if (src != null && src.isNotEmpty && !imageUrls.contains(src)) {
         imageUrls.add(_buildImageUrl(src));
       }
     }
-    
+
     return imageUrls;
   }
 
   /// 解析章节图片（包含尺寸信息）
   static List<ComicImage> parseChapterImagesWithDimensions(String htmlContent) {
     final document = html_parser.parse(htmlContent);
-    
+
     // 查找所有包含baozicdn.com的amp-img标签
     final imageElements = document.querySelectorAll('amp-img[src*="baozicdn.com"]');
     final images = <ComicImage>[];
-    
-    for (int i = 0; i < imageElements.length; i++) {
+
+    for (var i = 0; i < imageElements.length; i++) {
       final imgElement = imageElements[i];
       final src = imgElement.attributes['src'];
       final widthStr = imgElement.attributes['width'];
       final heightStr = imgElement.attributes['height'];
-      
+
       if (src != null && src.isNotEmpty && widthStr != null && heightStr != null) {
         final width = int.tryParse(widthStr) ?? 1280; // 默认宽度
         final height = int.tryParse(heightStr) ?? 1200; // 默认高度
         final url = _buildImageUrl(src);
-        
+
         // 检查是否已存在相同URL的图片
         if (!images.any((img) => img.url == url)) {
-          images.add(ComicImage(
-            url: url,
-            width: width,
-            height: height,
-            index: i,
-          ));
+          images.add(ComicImage(url: url, width: width, height: height, index: i));
         }
       }
     }
-    
+
     return images;
   }
 
   /// 解析章节详细信息（包含分页）
   static Chapter parseChapterDetail(String htmlContent, String chapterId, String comicId) {
     final document = html_parser.parse(htmlContent);
-    
+
     // 从标题中提取章节信息和分页信息
-    final titleElement = document.querySelector('.text .title') ?? 
-                        document.querySelector('.title');
+    final titleElement = document.querySelector('.text .title') ?? document.querySelector('.title');
     final fullTitle = titleElement?.text.trim() ?? '';
-    
-    // 解析分页信息，例如："第211話   神隕之雨(1/4)"
-    String chapterTitle = fullTitle;
+
+    // 解析分页信息，例如："第211話 神隕之雨(1/4)"
+    var chapterTitle = fullTitle;
     int? currentPage;
     int? totalPages;
-    
+
     final pageMatch = RegExp(r'\((\d+)/(\d+)\)').firstMatch(fullTitle);
     if (pageMatch != null) {
       currentPage = int.tryParse(pageMatch.group(1) ?? '');
       totalPages = int.tryParse(pageMatch.group(2) ?? '');
       chapterTitle = fullTitle.replaceFirst(pageMatch.group(0) ?? '', '').trim();
     }
-    
+
     // 解析所有图片（包含尺寸信息）
     final images = parseChapterImagesWithDimensions(htmlContent);
     final imageUrls = images.map((img) => img.url).toList(); // 保持向后兼容
-    
+
     // 提取章节号
     final chapterNumber = _extractChapterNumber(chapterTitle);
-    
+
     return Chapter(
       id: chapterId,
       title: chapterTitle,
       comicId: comicId,
       chapterNumber: chapterNumber,
       imageUrls: imageUrls,
-      images: images, // 新增包含尺寸信息的图片列表
+      images: images,
+      // 新增包含尺寸信息的图片列表
       currentPage: currentPage,
       totalPages: totalPages,
     );
@@ -401,16 +403,16 @@ class ParserService {
   static List<Category> parseCategories(String htmlContent) {
     final document = html_parser.parse(htmlContent);
     final categoryElements = document.querySelectorAll('.classify-nav .item');
-    
-    return categoryElements.map((element) {
-      final name = element.text.trim();
-      final id = element.attributes['data-type'] ?? name.toLowerCase();
-      
-      return Category(
-        id: id,
-        name: name,
-      );
-    }).where((category) => category.name.isNotEmpty).toList();
+
+    return categoryElements
+        .map((element) {
+          final name = element.text.trim();
+          final id = element.attributes['data-type'] ?? name.toLowerCase();
+
+          return Category(id: id, name: name);
+        })
+        .where((category) => category.name.isNotEmpty)
+        .toList();
   }
 
   /// 解析搜索建议
@@ -428,7 +430,7 @@ class ParserService {
 
   /// 提取漫画ID
   static String _extractComicId(String href) {
-    final regex = RegExp(r'/comic/([^/?]+)');
+    final regex = RegExp('/comic/([^/?]+)');
     final match = regex.firstMatch(href);
     return match?.group(1) ?? '';
   }
@@ -448,21 +450,21 @@ class ParserService {
     if (match != null) {
       return int.tryParse(match.group(1) ?? '');
     }
-    
+
     // 尝试其他格式，如"Chapter 211"
     final regex2 = RegExp(r'Chapter\s*(\d+)', caseSensitive: false);
     final match2 = regex2.firstMatch(title);
     if (match2 != null) {
       return int.tryParse(match2.group(1) ?? '');
     }
-    
+
     // 尝试纯数字格式
     final regex3 = RegExp(r'(\d+)');
     final match3 = regex3.firstMatch(title);
     if (match3 != null) {
       return int.tryParse(match3.group(1) ?? '');
     }
-    
+
     return null;
   }
 

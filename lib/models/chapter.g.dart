@@ -12,15 +12,9 @@ Chapter _$ChapterFromJson(Map<String, dynamic> json) => Chapter(
   comicId: json['comicId'] as String,
   chapterNumber: (json['chapterNumber'] as num?)?.toInt(),
   url: json['url'] as String?,
-  imageUrls: (json['imageUrls'] as List<dynamic>?)
-      ?.map((e) => e as String)
-      .toList(),
-  images: (json['images'] as List<dynamic>?)
-      ?.map((e) => ComicImage.fromJson(e as Map<String, dynamic>))
-      .toList(),
-  publishDate: json['publishDate'] == null
-      ? null
-      : DateTime.parse(json['publishDate'] as String),
+  imageUrls: (json['imageUrls'] as List<dynamic>?)?.map((e) => e as String).toList(),
+  images: (json['images'] as List<dynamic>?)?.map((e) => ComicImage.fromJson(e as Map<String, dynamic>)).toList(),
+  publishDate: json['publishDate'] == null ? null : DateTime.parse(json['publishDate'] as String),
   totalPages: (json['totalPages'] as num?)?.toInt(),
   currentPage: (json['currentPage'] as num?)?.toInt(),
 );

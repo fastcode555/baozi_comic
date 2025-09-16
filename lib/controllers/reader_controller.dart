@@ -1,10 +1,10 @@
 import 'dart:async';
 
+import 'package:baozi_comic/models/models.dart';
+import 'package:baozi_comic/services/services.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tailwind/flutter_tailwind.dart';
 import 'package:get/get.dart';
-
-import '../models/models.dart';
-import '../services/services.dart';
 
 class ReaderController extends GetxController {
   late final StorageService _storageService;
@@ -147,7 +147,7 @@ class ReaderController extends GetxController {
 
           // 建立图片索引到章节的映射
           _imageIndexToChapter.clear();
-          for (int i = 0; i < chapter.imageUrls!.length; i++) {
+          for (var i = 0; i < chapter.imageUrls!.length; i++) {
             _imageIndexToChapter[i] = chapter;
           }
         } else {
@@ -182,12 +182,12 @@ class ReaderController extends GetxController {
       if (chapter == null) return;
 
       // 计算当前章节内的页面索引
-      int chapterPageIndex = _currentPageIndex.value;
+      var chapterPageIndex = _currentPageIndex.value;
 
       // 如果是垂直阅读模式且有多章节，需要计算在当前章节内的页面索引
       if (_readingMode.value == 'vertical' && _imageIndexToChapter.isNotEmpty) {
         // 找到当前章节在图片列表中的起始位置
-        for (int i = 0; i < _imageUrls.length; i++) {
+        for (var i = 0; i < _imageUrls.length; i++) {
           if (_imageIndexToChapter[i]?.id == chapter.id) {
             chapterPageIndex = _currentPageIndex.value - i;
             break;
@@ -371,7 +371,7 @@ class ReaderController extends GetxController {
       final viewportCenter = position.pixels + (Get.height / 2);
 
       // 使用更精确的方法计算当前图片索引
-      int currentImageIndex = _findCurrentImageIndex(viewportCenter);
+      var currentImageIndex = _findCurrentImageIndex(viewportCenter);
 
       // 调试信息
       print('滚动检测: 图片索引=$currentImageIndex, 总图片数=${_imageUrls.length}, 章节映射数量=${_imageIndexToChapter.length}');
@@ -402,11 +402,11 @@ class ReaderController extends GetxController {
     }
 
     // 使用章节边界来更精确地定位
-    int bestIndex = 0;
-    double minDistance = double.infinity;
+    var bestIndex = 0;
+    var minDistance = double.infinity;
 
     // 遍历所有图片索引，找到最接近视口中心的图片
-    for (int i = 0; i < _imageUrls.length; i++) {
+    for (var i = 0; i < _imageUrls.length; i++) {
       // 估算图片i的位置
       final imagePosition = _estimateImagePosition(i);
       final distance = (imagePosition - viewportCenter).abs();
@@ -468,7 +468,7 @@ class ReaderController extends GetxController {
 
     try {
       final nextChapterNumber = _currentChapterNumber + 1;
-      print('开始预加载下一章: 第${nextChapterNumber}章');
+      print('开始预加载下一章: 第$nextChapterNumber章');
 
       // 获取下一章的详细信息
       final chapterResult = await ComicService.getChapterDetail(comicId, nextChapterNumber.toString());
@@ -485,7 +485,7 @@ class ReaderController extends GetxController {
           _imageUrls.addAll(nextChapterData.imageUrls!);
 
           // 为新追加的图片建立章节映射
-          for (int i = currentImageCount; i < _imageUrls.length; i++) {
+          for (var i = currentImageCount; i < _imageUrls.length; i++) {
             _imageIndexToChapter[i] = nextChapterData;
           }
 
@@ -550,48 +550,30 @@ class ReaderController extends GetxController {
   /// 显示章节列表
   void showChapterList() {
     Get.bottomSheet(
-      Container(
-        height: Get.height * 0.6,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Text('章节列表', style: Get.textTheme.titleLarge),
-            ),
-            Expanded(child: _chapters.isNotEmpty ? _buildChapterListFromData() : _buildChapterListFromNumbers()),
-          ],
-        ),
+      container.hFull60.white.roundedT16.child(
+        column.children([
+          container.p16.child(text('章节列表').mk),
+          Expanded(child: _chapters.isNotEmpty ? _buildChapterListFromData() : _buildChapterListFromNumbers()),
+        ]),
       ),
     );
   }
 
   /// 从章节数据构建列表
   Widget _buildChapterListFromData() {
-    return ListView.builder(
-      itemCount: _chapters.length,
-      itemBuilder: (context, index) {
-        final chapter = _chapters[index];
-        final isCurrentChapter = chapter.id == chapterId;
-
-        return ListTile(
-          title: Text(
-            chapter.title,
-            style: TextStyle(
-              color: isCurrentChapter ? Get.theme.primaryColor : null,
-              fontWeight: isCurrentChapter ? FontWeight.bold : null,
-            ),
-          ),
-          onTap: () {
-            Get.back();
-            _loadChapter(chapter);
-          },
-        );
-      },
-    );
+    return listview.dataBuilder(_chapters, (context, index, chapter) {
+      final isCurrentChapter = chapter.id == chapterId;
+      return ListTile(
+        title: text(chapter.title)
+            .fontWeight(isCurrentChapter ? FontWeight.bold : null)
+            .color(isCurrentChapter ? Get.theme.primaryColor : null)
+            .mk,
+        onTap: () {
+          Get.back();
+          _loadChapter(chapter);
+        },
+      );
+    });
   }
 
   /// 从数字构建章节列表（用于历史记录进入的情况）
@@ -601,69 +583,51 @@ class ReaderController extends GetxController {
     final endChapter = _currentChapterNumber + 10;
     final chapterNumbers = List.generate(endChapter - startChapter + 1, (index) => startChapter + index);
 
-    return ListView.builder(
-      itemCount: chapterNumbers.length,
-      itemBuilder: (context, index) {
-        final chapterNumber = chapterNumbers[index];
-        final isCurrentChapter = chapterNumber == _currentChapterNumber;
-
-        return ListTile(
-          title: Text(
-            '第${chapterNumber}章',
-            style: TextStyle(
-              color: isCurrentChapter ? Get.theme.primaryColor : null,
-              fontWeight: isCurrentChapter ? FontWeight.bold : null,
-            ),
-          ),
-          onTap: () {
-            Get.back();
-            _loadChapterByNumber(chapterNumber);
-          },
-        );
-      },
-    );
+    return listview.dataBuilder(chapterNumbers, (context, index, chapterNumber) {
+      final isCurrentChapter = chapterNumber == _currentChapterNumber;
+      return ListTile(
+        title: text('第$chapterNumber章')
+            .fontWeight(isCurrentChapter ? FontWeight.bold : null)
+            .color(isCurrentChapter ? Get.theme.primaryColor : null)
+            .mk,
+        onTap: () {
+          Get.back();
+          _loadChapterByNumber(chapterNumber);
+        },
+      );
+    });
   }
 
   /// 显示阅读设置
   void showReadingSettings() {
     Get.bottomSheet(
-      Container(
-        height: Get.height * 0.5,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Text('阅读设置', style: Get.textTheme.titleLarge),
-            ),
-            ListTile(
-              title: const Text('阅读模式'),
-              subtitle: Text(_readingMode.value == 'horizontal' ? '水平翻页' : '垂直滚动'),
-              trailing: Switch(value: _readingMode.value == 'vertical', onChanged: (value) => toggleReadingMode()),
-            ),
-            ListTile(
-              title: const Text('全屏模式'),
-              trailing: Switch(value: _isFullscreen.value, onChanged: (value) => toggleFullscreen()),
-            ),
-            ListTile(
-              title: const Text('测试自动加载下一章'),
-              subtitle: const Text('手动触发自动加载功能'),
-              trailing: const Icon(Icons.play_arrow),
-              onTap: () {
-                Get.back();
-                _autoLoadNextChapter();
-              },
-            ),
-            ListTile(
-              title: const Text('调试信息'),
-              subtitle: Text('当前章节: ${_currentChapterNumber}, 图片数量: ${_imageUrls.length}'),
-              trailing: const Icon(Icons.info),
-            ),
-          ],
-        ),
+      container.hFull50.white.roundedT16.child(
+        column.children([
+          container.p16.child(text('阅读设置').mk),
+          ListTile(
+            title: text('阅读模式').mk,
+            subtitle: text(_readingMode.value == 'horizontal' ? '水平翻页' : '垂直滚动').mk,
+            trailing: Switch(value: _readingMode.value == 'vertical', onChanged: (value) => toggleReadingMode()),
+          ),
+          ListTile(
+            title: text('全屏模式').mk,
+            trailing: Switch(value: _isFullscreen.value, onChanged: (value) => toggleFullscreen()),
+          ),
+          ListTile(
+            title: text('测试自动加载下一章').mk,
+            subtitle: text('手动触发自动加载功能').mk,
+            trailing: const Icon(Icons.play_arrow),
+            onTap: () {
+              Get.back();
+              _autoLoadNextChapter();
+            },
+          ),
+          ListTile(
+            title: text('调试信息').mk,
+            subtitle: text('当前章节: $_currentChapterNumber, 图片数量: ${_imageUrls.length}').mk,
+            trailing: const Icon(Icons.info),
+          ),
+        ]),
       ),
     );
   }
@@ -702,10 +666,10 @@ class ReaderController extends GetxController {
       print('开始更新历史记录: 章节=${chapter.title}, 图片索引=$currentImageIndex');
 
       // 计算当前章节内的页面索引
-      int chapterPageIndex = 0;
+      var chapterPageIndex = 0;
 
       // 找到当前章节在图片列表中的起始位置
-      for (int i = 0; i < _imageUrls.length; i++) {
+      for (var i = 0; i < _imageUrls.length; i++) {
         if (_imageIndexToChapter[i]?.id == chapter.id) {
           chapterPageIndex = currentImageIndex - i;
           print('找到章节起始位置: 索引$i, 章节内页面索引=$chapterPageIndex');

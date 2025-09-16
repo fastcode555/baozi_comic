@@ -1,6 +1,7 @@
 import 'dart:convert';
+
+import 'package:baozi_comic/models/models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/models.dart';
 
 class StorageService {
   static const String _favoritesKey = 'favorites';
@@ -21,7 +22,7 @@ class StorageService {
     final favorites = await getFavorites();
     favorites.removeWhere((c) => c.id == comic.id);
     favorites.insert(0, comic);
-    
+
     final jsonList = favorites.map((c) => c.toJson()).toList();
     await _prefs.setString(_favoritesKey, jsonEncode(jsonList));
   }
@@ -29,7 +30,7 @@ class StorageService {
   Future<void> removeFromFavorites(String comicId) async {
     final favorites = await getFavorites();
     favorites.removeWhere((c) => c.id == comicId);
-    
+
     final jsonList = favorites.map((c) => c.toJson()).toList();
     await _prefs.setString(_favoritesKey, jsonEncode(jsonList));
   }
@@ -37,7 +38,7 @@ class StorageService {
   Future<List<Comic>> getFavorites() async {
     final jsonString = _prefs.getString(_favoritesKey);
     if (jsonString == null) return [];
-    
+
     try {
       final jsonList = jsonDecode(jsonString) as List;
       return jsonList.map((json) => Comic.fromJson(json)).toList();
@@ -57,12 +58,12 @@ class StorageService {
     final historyList = await getReadingHistory();
     historyList.removeWhere((h) => h.comicId == history.comicId);
     historyList.insert(0, history);
-    
+
     // 限制历史记录数量
     if (historyList.length > 100) {
       historyList.removeRange(100, historyList.length);
     }
-    
+
     final jsonList = historyList.map((h) => h.toJson()).toList();
     await _prefs.setString(_historyKey, jsonEncode(jsonList));
   }
@@ -70,7 +71,7 @@ class StorageService {
   Future<void> removeFromHistory(String comicId) async {
     final historyList = await getReadingHistory();
     historyList.removeWhere((h) => h.comicId == comicId);
-    
+
     final jsonList = historyList.map((h) => h.toJson()).toList();
     await _prefs.setString(_historyKey, jsonEncode(jsonList));
   }
@@ -78,7 +79,7 @@ class StorageService {
   Future<List<ReadingHistory>> getReadingHistory() async {
     final jsonString = _prefs.getString(_historyKey);
     if (jsonString == null) return [];
-    
+
     try {
       final jsonList = jsonDecode(jsonString) as List;
       return jsonList.map((json) => ReadingHistory.fromJson(json)).toList();
@@ -100,16 +101,16 @@ class StorageService {
   /// 搜索历史相关
   Future<void> addSearchHistory(String query) async {
     if (query.trim().isEmpty) return;
-    
+
     final searchHistory = await getSearchHistory();
     searchHistory.remove(query);
     searchHistory.insert(0, query);
-    
+
     // 限制搜索历史数量
     if (searchHistory.length > 20) {
       searchHistory.removeRange(20, searchHistory.length);
     }
-    
+
     await _prefs.setStringList(_searchHistoryKey, searchHistory);
   }
 
@@ -128,7 +129,7 @@ class StorageService {
   }
 
   /// 应用设置相关
-  Future<void> setSetting(String key, dynamic value) async {
+  Future<void> setSetting(String key, value) async {
     final settings = await getSettings();
     settings[key] = value;
     await _prefs.setString(_settingsKey, jsonEncode(settings));
@@ -142,7 +143,7 @@ class StorageService {
   Future<Map<String, dynamic>> getSettings() async {
     final jsonString = _prefs.getString(_settingsKey);
     if (jsonString == null) return {};
-    
+
     try {
       return jsonDecode(jsonString) as Map<String, dynamic>;
     } catch (e) {

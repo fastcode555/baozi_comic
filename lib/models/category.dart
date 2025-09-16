@@ -9,20 +9,15 @@ class Category {
   final String? description;
   final String? iconUrl;
 
-  const Category({
-    required this.id,
-    required this.name,
-    this.description,
-    this.iconUrl,
-  });
+  Category({required this.id, required this.name, this.description, this.iconUrl});
 
   factory Category.fromJson(Map<String, dynamic> json) => _$CategoryFromJson(json);
+
   Map<String, dynamic> toJson() => _$CategoryToJson(this);
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Category && runtimeType == other.runtimeType && id == other.id;
+      identical(this, other) || other is Category && runtimeType == other.runtimeType && id == other.id;
 
   @override
   int get hashCode => id.hashCode;
