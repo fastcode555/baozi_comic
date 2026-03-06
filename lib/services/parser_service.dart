@@ -308,15 +308,47 @@ class ParserService {
   /// 解析章节图片
   static List<String> parseChapterImages(String htmlContent) {
     final document = html_parser.parse(htmlContent);
-    
-    // 查找所有包含baozicdn.com的amp-img标签
-    final imageElements = document.querySelectorAll('amp-img[src*="baozicdn.com"]');
     final imageUrls = <String>[];
     
+    // 方法1: 查找所有amp-img标签，尝试多个属性
+    final imageElements = document.querySelectorAll('amp-img');
+    
     for (final imgElement in imageElements) {
-      final src = imgElement.attributes['src'];
-      if (src != null && src.isNotEmpty && !imageUrls.contains(src)) {
-        imageUrls.add(_buildImageUrl(src));
+      // 尝试从多个可能的属性中获取图片URL
+      String? src = imgElement.attributes['src'] ?? 
+                    imgElement.attributes['data-src'] ??
+                    imgElement.attributes['data-original'] ??
+                    imgElement.attributes['data-lazy-src'];
+      
+      // 如果找到URL且包含图片CDN域名
+      if (src != null && src.isNotEmpty && 
+          (src.contains('baozicdn.com') || src.contains('static'))) {
+        final fullUrl = _buildImageUrl(src);
+        if (!imageUrls.contains(fullUrl)) {
+          imageUrls.add(fullUrl);
+        }
+      }
+    }
+    
+    // 方法2: 如果方法1没有找到图片，尝试从script标签中提取
+    if (imageUrls.isEmpty) {
+      final scriptElements = document.querySelectorAll('script');
+      for (final script in scriptElements) {
+        final scriptContent = script.text;
+        
+        // 查找可能包含图片URL的JSON数据
+        if (scriptContent.contains('baozicdn.com') || scriptContent.contains('imageUrls')) {
+          // 使用正则表达式提取所有图片URL
+          final urlPattern = RegExp(r'https?://[^"\s]+?baozicdn\.com[^"\s]+?\.(?:jpg|jpeg|png|webp|gif)', caseSensitive: false);
+          final matches = urlPattern.allMatches(scriptContent);
+          
+          for (final match in matches) {
+            final url = match.group(0);
+            if (url != null && !imageUrls.contains(url)) {
+              imageUrls.add(url);
+            }
+          }
+        }
       }
     }
     
@@ -326,20 +358,29 @@ class ParserService {
   /// 解析章节图片（包含尺寸信息）
   static List<ComicImage> parseChapterImagesWithDimensions(String htmlContent) {
     final document = html_parser.parse(htmlContent);
-    
-    // 查找所有包含baozicdn.com的amp-img标签
-    final imageElements = document.querySelectorAll('amp-img[src*="baozicdn.com"]');
     final images = <ComicImage>[];
+    
+    // 方法1: 查找所有amp-img标签
+    final imageElements = document.querySelectorAll('amp-img');
     
     for (int i = 0; i < imageElements.length; i++) {
       final imgElement = imageElements[i];
-      final src = imgElement.attributes['src'];
+      
+      // 尝试从多个可能的属性中获取图片URL
+      String? src = imgElement.attributes['src'] ?? 
+                    imgElement.attributes['data-src'] ??
+                    imgElement.attributes['data-original'] ??
+                    imgElement.attributes['data-lazy-src'];
+      
       final widthStr = imgElement.attributes['width'];
       final heightStr = imgElement.attributes['height'];
       
-      if (src != null && src.isNotEmpty && widthStr != null && heightStr != null) {
-        final width = int.tryParse(widthStr) ?? 1280; // 默认宽度
-        final height = int.tryParse(heightStr) ?? 1200; // 默认高度
+      // 如果找到URL且包含图片CDN域名
+      if (src != null && src.isNotEmpty && 
+          (src.contains('baozicdn.com') || src.contains('static')) &&
+          widthStr != null && heightStr != null) {
+        final width = int.tryParse(widthStr) ?? 1280;
+        final height = int.tryParse(heightStr) ?? 1200;
         final url = _buildImageUrl(src);
         
         // 检查是否已存在相同URL的图片
@@ -350,6 +391,34 @@ class ParserService {
             height: height,
             index: i,
           ));
+        }
+      }
+    }
+    
+    // 方法2: 如果方法1没有找到图片，尝试从script标签中提取
+    if (images.isEmpty) {
+      final scriptElements = document.querySelectorAll('script');
+      for (final script in scriptElements) {
+        final scriptContent = script.text;
+        
+        // 查找可能包含图片URL的JSON数据
+        if (scriptContent.contains('baozicdn.com') || scriptContent.contains('imageUrls')) {
+          // 使用正则表达式提取所有图片URL
+          final urlPattern = RegExp(r'https?://[^"\s]+?baozicdn\.com[^"\s]+?\.(?:jpg|jpeg|png|webp|gif)', caseSensitive: false);
+          final matches = urlPattern.allMatches(scriptContent);
+          
+          int index = 0;
+          for (final match in matches) {
+            final url = match.group(0);
+            if (url != null && !images.any((img) => img.url == url)) {
+              images.add(ComicImage(
+                url: url,
+                width: 1280, // 默认宽度
+                height: 1200, // 默认高度
+                index: index++,
+              ));
+            }
+          }
         }
       }
     }
@@ -473,5 +542,30 @@ class ParserService {
     if (url.startsWith('//')) return 'https:$url';
     if (url.startsWith('/')) return 'https://static-tw.baozimh.com$url';
     return url;
+  }
+  
+  /// 尝试从页面中提取图片数量信息
+  static int? _extractImageCount(String htmlContent) {
+    // 尝试从标题中提取分页信息，例如："第246話 覺醒全新技能！(1/4)"
+    final document = html_parser.parse(htmlContent);
+    final titleElement = document.querySelector('.text .title') ?? 
+                        document.querySelector('.title');
+    final fullTitle = titleElement?.text.trim() ?? '';
+    
+    // 解析分页信息
+    final pageMatch = RegExp(r'\((\d+)/(\d+)\)').firstMatch(fullTitle);
+    if (pageMatch != null) {
+      final totalPages = int.tryParse(pageMatch.group(2) ?? '');
+      return totalPages;
+    }
+    
+    // 尝试从页面中查找图片数量的其他线索
+    // 例如：查找所有的图片占位符
+    final imagePlaceholders = document.querySelectorAll('.comic-contain amp-img, .comic-contain .image-placeholder');
+    if (imagePlaceholders.isNotEmpty) {
+      return imagePlaceholders.length;
+    }
+    
+    return null;
   }
 }

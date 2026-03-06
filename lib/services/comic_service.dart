@@ -1,6 +1,7 @@
 import '../models/models.dart';
 import 'http_service.dart';
 import 'parser_service.dart';
+import '../utils/debug_helper.dart';
 
 class ComicService {
   
@@ -126,12 +127,53 @@ class ComicService {
   static Future<ApiResponse<List<String>>> getChapterImages(String comicId, String chapterId) async {
     try {
       // 构建正确的章节URL，基于分析的URL模式
-      // 例如：https://www.twmanga.com/comic/chapter/silingfashiwojishitianzai-mantudezhuyuanzhuheiniaoshe_rjogsq/0_210.html
-      final url = 'https://www.twmanga.com/comic/chapter/${comicId}/0_${chapterId}.html';
-      final htmlContent = await HttpService.get(url);
+      // 尝试多个可能的域名
+      final urls = [
+        'https://www.twmanga.com/comic/chapter/${comicId}/0_${chapterId}.html',
+        'https://www.baozimh.com/comic/chapter/${comicId}/0_${chapterId}.html',
+        'https://tw.baozimh.com/comic/chapter/${comicId}/0_${chapterId}.html',
+      ];
+      
+      String? htmlContent;
+      String? successUrl;
+      
+      // 尝试每个URL直到成功
+      for (final url in urls) {
+        try {
+          htmlContent = await HttpService.get(url);
+          successUrl = url;
+          print('成功从 $url 获取章节内容');
+          break;
+        } catch (e) {
+          print('从 $url 获取失败: $e');
+          continue;
+        }
+      }
+      
+      if (htmlContent == null) {
+        return ApiResponse.error('无法从任何源获取章节内容');
+      }
+      
       final imageUrls = ParserService.parseChapterImages(htmlContent);
+      
+      if (imageUrls.isEmpty) {
+        print('警告: 未能解析到图片URL，HTML内容长度: ${htmlContent.length}');
+        print('使用的URL: $successUrl');
+        
+        // 启用调试模式时输出详细信息
+        DebugHelper.analyzeChapterHtml(htmlContent, chapterId);
+        
+        // 可选：保存HTML到文件以便检查
+        // await DebugHelper.saveHtmlToFile(htmlContent, 'chapter_${chapterId}');
+        
+        // 返回错误信息，包含调试信息
+        return ApiResponse.error('未能解析到图片。这可能是因为网站结构已更改。请检查网络连接或稍后重试。');
+      }
+      
+      print('成功解析 ${imageUrls.length} 张图片');
       return ApiResponse.success(imageUrls);
     } catch (e) {
+      print('获取章节图片失败: $e');
       return ApiResponse.error('获取章节图片失败: $e');
     }
   }
@@ -139,12 +181,42 @@ class ComicService {
   /// 获取章节详细信息（包含分页）
   static Future<ApiResponse<Chapter>> getChapterDetail(String comicId, String chapterId) async {
     try {
-      // 构建正确的章节URL
-      final url = 'https://www.twmanga.com/comic/chapter/${comicId}/0_${chapterId}.html';
-      final htmlContent = await HttpService.get(url);
+      // 尝试多个可能的域名
+      final urls = [
+        'https://www.twmanga.com/comic/chapter/${comicId}/0_${chapterId}.html',
+        'https://www.baozimh.com/comic/chapter/${comicId}/0_${chapterId}.html',
+        'https://tw.baozimh.com/comic/chapter/${comicId}/0_${chapterId}.html',
+      ];
+      
+      String? htmlContent;
+      
+      // 尝试每个URL直到成功
+      for (final url in urls) {
+        try {
+          htmlContent = await HttpService.get(url);
+          print('成功从 $url 获取章节详情');
+          break;
+        } catch (e) {
+          print('从 $url 获取失败: $e');
+          continue;
+        }
+      }
+      
+      if (htmlContent == null) {
+        return ApiResponse.error('无法从任何源获取章节详情');
+      }
+      
       final chapter = ParserService.parseChapterDetail(htmlContent, chapterId, comicId);
+      
+      if (chapter.imageUrls == null || chapter.imageUrls!.isEmpty) {
+        print('警告: 章节详情中未包含图片URL');
+      } else {
+        print('章节详情包含 ${chapter.imageUrls!.length} 张图片');
+      }
+      
       return ApiResponse.success(chapter);
     } catch (e) {
+      print('获取章节详情失败: $e');
       return ApiResponse.error('获取章节详情失败: $e');
     }
   }
