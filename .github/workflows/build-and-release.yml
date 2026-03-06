@@ -1,0 +1,223 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+# 添加权限设置
+permissions:
+  contents: write
+  packages: write
+  pull-requests: read
+
+env:
+  FLUTTER_VERSION: '3.24.0'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+          
+      - name: Enable Windows Desktop
+        run: flutter config --enable-windows-desktop
+        
+      - name: Get Dependencies
+        run: flutter pub get
+        
+      - name: Build Windows
+        run: flutter build windows --release
+        
+      - name: Create Package
+        run: |
+          $date = Get-Date -Format "yyyy-MM-dd"
+          $commit = "${{ github.sha }}".Substring(0,7)
+          
+          New-Item -ItemType Directory -Force -Path "release"
+          
+          # Create ZIP package
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath "release\BaoziComic-Windows-$date-$commit.zip"
+          
+          Write-Host "Package created: BaoziComic-Windows-$date-$commit.zip"
+          
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: release/*.zip
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+          
+      - name: Enable macOS Desktop
+        run: flutter config --enable-macos-desktop
+        
+      - name: Get Dependencies
+        run: flutter pub get
+        
+      - name: Build macOS
+        run: flutter build macos --release
+        
+      - name: Create DMG
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          COMMIT="${{ github.sha }}"
+          COMMIT_SHORT="${COMMIT:0:7}"
+          
+          mkdir -p release
+          
+          # 设置变量
+          APP_NAME="baozi_comic.app"
+          DMG_NAME="BaoziComic-macOS-${DATE}-${COMMIT_SHORT}.dmg"
+          VOLUME_NAME="Baozi Comic"
+          DMG_TEMP="dmg_temp"
+          
+          echo "Creating DMG for Baozi Comic..."
+          
+          # 创建临时目录
+          mkdir -p "${DMG_TEMP}"
+          
+          # 复制应用到临时目录
+          echo "Copying app bundle..."
+          cp -R "build/macos/Build/Products/Release/${APP_NAME}" "${DMG_TEMP}/"
+          
+          # 创建Applications符号链接
+          echo "Creating Applications symlink..."
+          ln -s /Applications "${DMG_TEMP}/Applications"
+          
+          # 创建README文件
+          cat > "${DMG_TEMP}/Install Instructions.txt" << 'EOF'
+          Baozi Comic Installation Instructions
+          ====================================
+          
+          1. Drag "baozi_comic.app" to the "Applications" folder
+          2. Launch Baozi Comic from Applications or Spotlight
+          3. Enjoy reading comics!
+          
+          If you encounter any issues, please visit our GitHub repository.
+          EOF
+          
+          # 设置文件权限
+          chmod -R 755 "${DMG_TEMP}/${APP_NAME}"
+          chmod 644 "${DMG_TEMP}/Install Instructions.txt"
+          
+          # 创建DMG - 使用简化的单步法
+          echo "Creating DMG..."
+          hdiutil create -srcfolder "${DMG_TEMP}" \
+                         -volname "${VOLUME_NAME}" \
+                         -fs HFS+ \
+                         -format UDZO \
+                         -imagekey zlib-level=9 \
+                         "release/${DMG_NAME}"
+          
+          # 清理临时文件
+          rm -rf "${DMG_TEMP}"
+          
+          # 验证DMG
+          echo "Verifying DMG..."
+          if hdiutil verify "release/${DMG_NAME}"; then
+            echo "✅ DMG verification successful"
+          else
+            echo "❌ DMG verification failed"
+            exit 1
+          fi
+          
+          # 显示DMG信息
+          echo "📦 DMG created successfully: ${DMG_NAME}"
+          ls -lh "release/${DMG_NAME}"
+          
+          # 测试挂载DMG
+          echo "Testing DMG mount..."
+          MOUNT_POINT=$(hdiutil attach "release/${DMG_NAME}" | grep "/Volumes" | tail -1 | sed 's/.*\(\/Volumes\/.*\)/\1/')
+          if [ -n "$MOUNT_POINT" ]; then
+            echo "✅ DMG mounted successfully at: $MOUNT_POINT"
+            ls -la "$MOUNT_POINT"
+            hdiutil detach "$MOUNT_POINT"
+            echo "✅ DMG unmounted successfully"
+          else
+            echo "❌ Failed to mount DMG"
+            exit 1
+          fi
+          
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: release/*.dmg
+
+  create-release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Get Date
+        id: date
+        run: |
+          echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+          COMMIT="${{ github.sha }}"
+          echo "commit=${COMMIT:0:7}" >> $GITHUB_OUTPUT
+          
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v1.0.0-${{ steps.date.outputs.date }}-${{ steps.date.outputs.commit }}
+          name: Baozi Comic v1.0.0 - ${{ steps.date.outputs.date }}
+          body: |
+            ## 包子漫画桌面版发布 / Baozi Comic Desktop Release
+            
+            **构建日期 / Build Date:** ${{ steps.date.outputs.date }}
+            **提交版本 / Commit:** ${{ steps.date.outputs.commit }}
+            
+            ### 下载 / Downloads
+            - **Windows**: 下载 ZIP 文件，解压后运行可执行文件
+            - **macOS**: 下载 DMG 文件，打开后将包子漫画拖到应用程序文件夹
+            
+            ### 安装说明 / Installation Instructions
+            
+            #### Windows
+            1. 下载 ZIP 文件
+            2. 解压到您想要的位置
+            3. 运行可执行文件
+            
+            #### macOS
+            1. 下载 DMG 文件
+            2. 双击挂载磁盘映像
+            3. 将 "baozi_comic.app" 拖到应用程序文件夹
+            4. 从应用程序或 Spotlight 启动
+            
+            ### 功能特性 / Features
+            - 🏠 首页7大板块：热门、推荐国漫、推荐韩漫、推荐日漫、热血、最新上架、最近更新
+            - 🔍 搜索功能，快速找到您喜欢的漫画
+            - 📖 流畅的阅读体验，支持垂直滚动和图片缩放
+            - ⭐ 收藏和历史记录功能
+            - 🎨 精美的界面设计，支持亮色/暗色模式
+            
+          files: |
+            artifacts/windows-build/*.zip
+            artifacts/macos-build/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
